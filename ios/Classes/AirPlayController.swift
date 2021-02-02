@@ -8,8 +8,9 @@
 import Flutter
 import AVKit
 
-public class AirPlayController: NSObject, FlutterPlatformView {
+private var currentRouterContext = 0
 
+public class AirPlayController: NSObject, FlutterPlatformView {
     // MARK: - Internal properties
 
     private let channel: FlutterMethodChannel
@@ -26,9 +27,21 @@ public class AirPlayController: NSObject, FlutterPlatformView {
         registrar: FlutterPluginRegistrar
     ) {
         self.channel = FlutterMethodChannel(name: "flutter_video_cast/airPlay_\(viewId)", binaryMessenger: registrar.messenger())
+
         self.airPlayButton = AVRoutePickerView(frame: frame)
+
         super.init()
         self.configure(arguments: args)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(audioSessionRouteChanged),
+            name: AVAudioSession.routeChangeNotification,
+            object: audioSession)
+    }
+
+    @objc private func audioSessionRouteChanged(_ notification: Notification?) {
+        channel.invokeMethod("airPlay#onConnection", arguments: ["isConnected": isConnected()])
     }
 
     public func view() -> UIView {
@@ -51,8 +64,8 @@ public class AirPlayController: NSObject, FlutterPlatformView {
             let green = args["green"] as? CGFloat,
             let blue = args["blue"] as? CGFloat,
             let alpha = args["alpha"] as? Int
-            else {
-                return
+        else {
+            return
         }
         airPlayButton.tintColor = UIColor(
             red: red / 255,
@@ -69,8 +82,8 @@ public class AirPlayController: NSObject, FlutterPlatformView {
             let green = args["activeGreen"] as? CGFloat,
             let blue = args["activeBlue"] as? CGFloat,
             let alpha = args["activeAlpha"] as? Int
-            else {
-                return
+        else {
+            return
         }
         airPlayButton.activeTintColor = UIColor(
             red: red / 255,
@@ -96,6 +109,10 @@ public class AirPlayController: NSObject, FlutterPlatformView {
         case "airPlay#isConnected":
             result(isConnected())
             break
+        case "airPlay#openRouterView":
+            airPlayButton.triggerTouchUp()
+            result(nil)
+            break
         default:
             break
         }
@@ -103,6 +120,10 @@ public class AirPlayController: NSObject, FlutterPlatformView {
 
     private func isConnected() -> Bool {
         return audioSession.currentRoute.outputs.contains { $0.portType == AVAudioSession.Port.airPlay }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 }
 
@@ -115,5 +136,12 @@ extension AirPlayController: AVRoutePickerViewDelegate {
 
     public func routePickerViewDidEndPresentingRoutes(_ routePickerView: AVRoutePickerView) {
         channel.invokeMethod("airPlay#onRoutesClosed", arguments: nil)
+    }
+}
+
+extension AVRoutePickerView {
+    func triggerTouchUp() {
+        let routePickerButton = subviews.first(where: { $0 is UIButton }) as? UIButton
+        routePickerButton?.sendActions(for: .touchUpInside)
     }
 }

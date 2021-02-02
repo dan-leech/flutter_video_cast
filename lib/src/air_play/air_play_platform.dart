@@ -19,6 +19,16 @@ abstract class AirPlayPlatform {
     throw UnimplementedError('init() has not been implemented.');
   }
 
+  /// Returns current AirPlay state
+  Future<bool> isConnected(int id) {
+    throw UnimplementedError('isConnected() has not been implemented.');
+  }
+
+  /// open AirPlay menu
+  Future<void> openRouterView(int id) {
+    throw UnimplementedError('openRouterView() has not been implemented.');
+  }
+
   /// The route is opening.
   Stream<RoutesOpeningEvent> onRoutesOpening({@required int id}) {
     throw UnimplementedError('onRoutesOpening() has not been implemented.');
@@ -27,6 +37,12 @@ abstract class AirPlayPlatform {
   /// The route has closed.
   Stream<RoutesClosedEvent> onRoutesClosed({@required int id}) {
     throw UnimplementedError('onRoutesClosed() has not been implemented.');
+  }
+
+  /// AirPlay connected/disconnected
+  Stream<ConnectionEvent> onConnectionStateChanged({@required int id}) {
+    throw UnimplementedError(
+        'onConnectionStateChanged() has not been implemented.');
   }
 
   /// Returns a widget displaying the button.

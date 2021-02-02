@@ -41,6 +41,16 @@ class MethodChannelAirPlay extends AirPlayPlatform {
   }
 
   @override
+  Future<bool> isConnected(int id) {
+    return channel(id).invokeMethod<bool>('airPlay#isConnected');
+  }
+
+  @override
+  Future<void> openRouterView(int id) {
+    return channel(id).invokeMethod<void>('airPlay#openRouterView');
+  }
+
+  @override
   Stream<RoutesOpeningEvent> onRoutesOpening({@required int id}) {
     return _events(id).whereType<RoutesOpeningEvent>();
   }
@@ -50,6 +60,13 @@ class MethodChannelAirPlay extends AirPlayPlatform {
     return _events(id).whereType<RoutesClosedEvent>();
   }
 
+  @override
+  Stream<ConnectionEvent> onConnectionStateChanged({@required int id}) {
+    return _events(id)
+        .whereType<ConnectionEvent>()
+        .distinct((p, n) => p.isConnected == n.isConnected);
+  }
+
   Future<dynamic> _handleMethodCall(MethodCall call, int id) async {
     switch (call.method) {
       case 'airPlay#onRoutesOpening':
@@ -57,6 +74,10 @@ class MethodChannelAirPlay extends AirPlayPlatform {
         break;
       case 'airPlay#onRoutesClosed':
         _eventStreamController.add(RoutesClosedEvent(id));
+        break;
+      case 'airPlay#onConnection':
+        _eventStreamController
+            .add(ConnectionEvent(id, call.arguments['isConnected']));
         break;
       default:
         throw MissingPluginException();
