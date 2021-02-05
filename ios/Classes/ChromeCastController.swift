@@ -1,199 +1,153 @@
 //
-//  ChromeCastController.swift
+//  ChromeCastManager.swift
 //  flutter_video_cast
 //
-//  Created by Alessio Valentini on 07/08/2020.
+//  Created by Daniil Kostin on 02/03/2020.
 //
 
 import Flutter
 import GoogleCast
 
-class ChromeCastController: NSObject, FlutterPlatformView {
-
+class ChromeCastController: NSObject {
     // MARK: - Internal properties
-
-    private let channel: FlutterMethodChannel
-    private let chromeCastButton: GCKUICastButton
-    private let sessionManager = GCKCastContext.sharedInstance().sessionManager
-
+    private let castManager = GoogleCastManager.instance
+    var eventSink: FlutterEventSink?
+    var devices = [GCKDevice](){
+        didSet{
+            print("did set device")
+        }
+    }
+    
     // MARK: - Init
-
+    
     init(
-        withFrame frame: CGRect,
-        viewIdentifier viewId: Int64,
-        arguments args: Any?,
         registrar: FlutterPluginRegistrar
     ) {
-        self.channel = FlutterMethodChannel(name: "flutter_video_cast/chromeCast_\(viewId)", binaryMessenger: registrar.messenger())
-        self.chromeCastButton = GCKUICastButton(frame: frame)
         super.init()
-        self.configure(arguments: args)
+        
+        let eventChannel = FlutterEventChannel(
+            name: "flutter_video_cast/chromeCastEvent",
+            binaryMessenger: registrar.messenger())
+        
+        eventChannel.setStreamHandler(self)
     }
+}
 
-    func view() -> UIView {
-        return chromeCastButton
+// MARK: - FLTVideoCastApi
+
+extension ChromeCastController: FLTVideoCastApi {
+    func initialize(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.initialise()
+        castManager.addSessionStatusListener(listener: self)
     }
-
-    private func configure(arguments args: Any?) {
-        setTint(arguments: args)
-        setMethodCallHandler()
+    
+    func discoverDevices(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTDevicesMessage? {
+        let devices = castManager.getAvailableDevices()
+        //        NSLog("devices: %i", devices.count)
+        
+        let res = FLTDevicesMessage()
+        
+        var devicesData = [[String: String?]]()
+        for device in devices {
+            devicesData.append(["id": device.deviceID, "name": device.friendlyName])
+        }
+        
+        let jsonEncoder = JSONEncoder()
+        let jsonData = try! jsonEncoder.encode(devicesData)
+        let json = String(data: jsonData, encoding: String.Encoding.utf8)
+        
+        res.devicesData = json
+        //        NSLog("json: %@", NSString(string: json!))
+        
+        return res
     }
-
-    // MARK: - Styling
-
-    private func setTint(arguments args: Any?) {
+    
+    func isConnected(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTIsConnectedMessage? {
+        let res = FLTIsConnectedMessage()
+        res.isConnected = castManager.isConnected() ? 1 : 0
+        
+        return res
+    }
+    
+    
+    func connect(_ input: FLTConnectMessage, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        let device:GCKDevice? = castManager.getAvailableDevices().first { (device) -> Bool in
+            return device.deviceID == input.deviceId
+        }
+        
+        if device != nil {
+            castManager.connectToDevice(device: device!)
+        } else {
+            error.pointee = FlutterError(code: "flutter_video_cast", message: "device not found", details: nil)
+        }
+    }
+    
+    func disconnect(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.disconnectFromCurrentDevice()
+    }
+    
+    func loadMedia(_ input: FLTLoadMediaMessage, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
         guard
-            let args = args as? [String: Any],
-            let red = args["red"] as? CGFloat,
-            let green = args["green"] as? CGFloat,
-            let blue = args["blue"] as? CGFloat,
-            let alpha = args["alpha"] as? Int else {
-                print("Invalid color")
-                return
-        }
-        chromeCastButton.tintColor = UIColor(
-            red: red / 255,
-            green: green / 255,
-            blue: blue / 255,
-            alpha: CGFloat(alpha) / 255
-        )
-    }
-
-    // MARK: - Flutter methods handling
-
-    private func setMethodCallHandler() {
-        channel.setMethodCallHandler { call, result in
-            self.onMethodCall(call: call, result: result)
-        }
-    }
-
-    private func onMethodCall(call: FlutterMethodCall, result: FlutterResult) {
-        switch call.method {
-        case "chromeCast#wait":
-            result(nil)
-            break
-        case "chromeCast#loadMedia":
-            loadMedia(args: call.arguments)
-            result(nil)
-            break
-        case "chromeCast#play":
-            play()
-            result(nil)
-            break
-        case "chromeCast#pause":
-            pause()
-            result(nil)
-            break
-        case "chromeCast#seek":
-            seek(args: call.arguments)
-            result(nil)
-            break
-        case "chromeCast#stop":
-            stop()
-            result(nil)
-            break
-        case "chromeCast#isConnected":
-            result(isConnected())
-            break
-        case "chromeCast#isPlaying":
-            result(isPlaying())
-            break
-        case "chromeCast#addSessionListener":
-            addSessionListener()
-            result(nil)
-        case "chromeCast#removeSessionListener":
-            removeSessionListener()
-            result(nil)
-        default:
-            result(nil)
-            break
-        }
-    }
-
-    private func loadMedia(args: Any?) {
-        guard
-            let args = args as? [String: Any],
-            let url = args["url"] as? String,
+            let url = input.url,
             let mediaUrl = URL(string: url) else {
-                print("Invalid URL")
-                return
+            print("Invalid URL")
+            return
         }
-        let mediaInformation = GCKMediaInformationBuilder(contentURL: mediaUrl).build()
-        if let request = sessionManager.currentCastSession?.remoteMediaClient?.loadMedia(mediaInformation) {
-            request.delegate = self
-        }
-    }
-
-    private func play() {
-        if let request = sessionManager.currentCastSession?.remoteMediaClient?.play() {
-            request.delegate = self
-        }
-    }
-
-    private func pause() {
-        if let request = sessionManager.currentCastSession?.remoteMediaClient?.pause() {
-            request.delegate = self
-        }
-    }
-
-    private func seek(args: Any?) {
-        guard
-            let args = args as? [String: Any],
-            let relative = args["relative"] as? Bool,
-            let interval = args["interval"] as? Double else {
-                return
-        }
-        let seekOptions = GCKMediaSeekOptions()
-        seekOptions.relative = relative
-        seekOptions.interval = interval
-        if let request = sessionManager.currentCastSession?.remoteMediaClient?.seek(with: seekOptions) {
-            request.delegate = self
-        }
-    }
-
-    private func stop() {
-        if let request = sessionManager.currentCastSession?.remoteMediaClient?.stop() {
-            request.delegate = self
-        }
-    }
-
-    private func isConnected() -> Bool {
-        return sessionManager.currentCastSession?.remoteMediaClient?.connected ?? false
-    }
-
-    private func isPlaying() -> Bool {
-        return sessionManager.currentCastSession?.remoteMediaClient?.mediaStatus?.playerState == GCKMediaPlayerState.playing
-    }
-
-    private func addSessionListener() {
-        sessionManager.add(self)
-    }
-
-    private func removeSessionListener() {
-        sessionManager.remove(self)
+        
+        let mediaInformation = castManager.buildMediaInformation(contentURL: mediaUrl, title: input.title ?? "", description: input.description ?? "", studio: input.studio ?? "", duration: nil, streamType: GCKMediaStreamType.buffered, thumbnailUrl: input.thumbnailUrl, customData: nil)
+        
+        castManager.startSelectedItemRemotely(mediaInformation, at: TimeInterval.init(truncating: input.position ?? 0), completion: { (done) in
+            if !done {
+                error.pointee = FlutterError(code: "flutter_video_cast", message: "session is not started", details: nil)
+            }
+        })
     }
 }
 
-// MARK: - GCKSessionManagerListener
+// MARK: - FlutterStreamHandler
 
-extension ChromeCastController: GCKSessionManagerListener {
-    func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
-        channel.invokeMethod("chromeCast#didStartSession", arguments: nil)
+extension ChromeCastController: FlutterStreamHandler {
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        eventSink = events
+        return nil
     }
-
-    func sessionManager(_ sessionManager: GCKSessionManager, didEnd session: GCKSession, withError error: Error?) {
-        channel.invokeMethod("chromeCast#didEndSession", arguments: nil)
+    
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        eventSink = nil
+        return nil
     }
 }
 
-// MARK: - GCKRequestDelegate
 
-extension ChromeCastController: GCKRequestDelegate {
-    func requestDidComplete(_ request: GCKRequest) {
-        channel.invokeMethod("chromeCast#requestDidComplete", arguments: nil)
-    }
+// MARK: - SessionStatusListener
 
-    func request(_ request: GCKRequest, didFailWithError error: GCKError) {
-        channel.invokeMethod("chromeCast#requestDidFail", arguments: ["error" : error.localizedDescription])
+extension ChromeCastController: SessionStatusListener {
+    func onChange(status: CastSessionStatus) {
+        switch status {
+        case CastSessionStatus.started:
+            eventSink?([
+                "event": "didStartSession"
+            ])
+        case CastSessionStatus.ended:
+            eventSink?([
+                "event": "didEndSession"
+            ])
+        case CastSessionStatus.alreadyConnected:
+            eventSink?([
+                "event": "alreadyConnectedSession"
+            ])
+        case CastSessionStatus.failedToStart:
+            eventSink?([
+                "event": "failedToStartSession"
+            ])
+        case CastSessionStatus.resumed:
+            eventSink?([
+                "event": "resumedSession"
+            ])
+        case CastSessionStatus.connecting:
+            eventSink?([
+                "event": "connectingSession"
+            ])
+        }
     }
 }

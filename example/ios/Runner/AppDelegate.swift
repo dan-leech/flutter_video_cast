@@ -12,11 +12,14 @@ import GoogleCast
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         GeneratedPluginRegistrant.register(with: self)
-        let criteria = GCKDiscoveryCriteria(applicationID: kReceiverAppID)
-        let options = GCKCastOptions(discoveryCriteria: criteria)
-        GCKCastContext.setSharedInstanceWith(options)
-        GCKCastContext.sharedInstance().useDefaultExpandedMediaControls = true
-        GCKLogger.sharedInstance().delegate = self
+        /*
+         * if it's initialized here a build from studio does not discover devices
+         */
+//        let criteria = GCKDiscoveryCriteria(applicationID: kReceiverAppID)
+//        let options = GCKCastOptions(discoveryCriteria: criteria)
+//        GCKCastContext.setSharedInstanceWith(options)
+//        GCKCastContext.sharedInstance().useDefaultExpandedMediaControls = true
+//        GCKLogger.sharedInstance().delegate = self
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 }

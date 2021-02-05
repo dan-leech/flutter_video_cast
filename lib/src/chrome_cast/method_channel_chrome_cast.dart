@@ -3,152 +3,155 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_video_cast/messages.dart';
 import 'package:flutter_video_cast/src/chrome_cast/chrome_cast_event.dart';
 import 'package:flutter_video_cast/src/chrome_cast/chrome_cast_platform.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 /// An implementation of [ChromeCastPlatform] that uses [MethodChannel] to communicate with the native code.
 class MethodChannelChromeCast extends ChromeCastPlatform {
-  // Keep a collection of id -> channel
-  // Every method call passes the int id
-  final Map<int, MethodChannel> _channels = {};
+  final VideoCastApi _api = VideoCastApi();
+  final _eventChannel = EventChannel('flutter_video_cast/chromeCastEvent');
 
-  /// Accesses the MethodChannel associated to the passed id.
-  MethodChannel channel(int id) {
-    return _channels[id];
-  }
-
-  // The controller we need to broadcast the different events coming
-  // from handleMethodCall.
-  //
-  // It is a `broadcast` because multiple controllers will connect to
-  // different stream views of this Controller.
-  final _eventStreamController = StreamController<ChromeCastEvent>.broadcast();
-
-  // Returns a filtered view of the events in the _controller, by id.
-  Stream<ChromeCastEvent> _events(int id) =>
-      _eventStreamController.stream.where((event) => event.id == id);
+  // The stream to broadcast the different events coming
+  // from native api.
+  @override
+  Stream<ChromeCastEvent> get events => _eventChannel
+      // fixme: fix broadcasting
+      .receiveBroadcastStream()
+      .map((event) => _handleEvent(event));
 
   @override
-  Future<void> init(int id) {
-    MethodChannel channel;
-    if (!_channels.containsKey(id)) {
-      channel = MethodChannel('flutter_video_cast/chromeCast_$id');
-      channel.setMethodCallHandler((call) => _handleMethodCall(call, id));
-      _channels[id] = channel;
-    }
-    return channel.invokeMethod<void>('chromeCast#wait');
+  Future<void> init() {
+    return _api.initialize();
   }
 
   @override
-  Future<void> addSessionListener({int id}) {
-    return channel(id).invokeMethod<void>('chromeCast#addSessionListener');
+  Future<DevicesMessage> discoverDevices() {
+    return _api.discoverDevices();
   }
 
   @override
-  Future<void> removeSessionListener({int id}) {
-    return channel(id).invokeMethod<void>('chromeCast#removeSessionListener');
+  Future<void> connect({@required String deviceId}) {
+    return _api.connect(ConnectMessage()..deviceId = deviceId);
   }
 
   @override
-  Stream<SessionStartedEvent> onSessionStarted({int id}) {
-    return _events(id).whereType<SessionStartedEvent>();
+  Future<void> disconnect() {
+    return _api.disconnect();
   }
 
   @override
-  Stream<SessionEndedEvent> onSessionEnded({int id}) {
-    return _events(id).whereType<SessionEndedEvent>();
+  Future<bool> isConnected() async {
+    final msg = await _api.isConnected();
+    return msg.isConnected == 1;
   }
 
   @override
-  Stream<RequestDidCompleteEvent> onRequestCompleted({int id}) {
-    return _events(id).whereType<RequestDidCompleteEvent>();
+  Stream<SessionStartedEvent> onSessionStarted() {
+    return events.whereType<SessionStartedEvent>();
   }
 
   @override
-  Stream<RequestDidFailEvent> onRequestFailed({int id}) {
-    return _events(id).whereType<RequestDidFailEvent>();
+  Stream<SessionEndedEvent> onSessionEnded() {
+    return events.whereType<SessionEndedEvent>();
   }
 
   @override
-  Future<void> loadMedia(String url, {@required int id}) {
-    final Map<String, dynamic> args = {'url': url};
-    return channel(id).invokeMethod<void>('chromeCast#loadMedia', args);
+  Stream<SessionConnectingEvent> onSessionConnecting() {
+    return events.whereType<SessionConnectingEvent>();
   }
 
   @override
-  Future<void> play({@required int id}) {
-    return channel(id).invokeMethod<void>('chromeCast#play');
+  Stream<RequestDidCompleteEvent> onRequestCompleted() {
+    return events.whereType<RequestDidCompleteEvent>();
   }
 
   @override
-  Future<void> pause({@required int id}) {
-    return channel(id).invokeMethod<void>('chromeCast#pause');
+  Stream<RequestDidFailEvent> onRequestFailed() {
+    return events.whereType<RequestDidFailEvent>();
   }
 
   @override
-  Future<void> seek(bool relative, double interval, {@required int id}) {
-    final Map<String, dynamic> args = {
-      'relative': relative,
-      'interval': interval
-    };
-    return channel(id).invokeMethod<void>('chromeCast#seek', args);
+  Future<void> loadMedia(String url,
+      {String title, description, studio, thumbnailUrl, int position}) async {
+    return _api.loadMedia(LoadMediaMessage()
+      ..url = url
+      ..title = title
+      ..description = description
+      ..studio = studio
+      ..thumbnailUrl = thumbnailUrl
+      ..position = position);
   }
 
   @override
-  Future<void> stop({int id}) {
-    return channel(id).invokeMethod<void>('chromeCast#stop');
+  Future<void> play() async {
+    // return channel(id).invokeMethod<void>('chromeCast#play');
   }
 
   @override
-  Future<bool> isConnected({@required int id}) {
-    return channel(id).invokeMethod<bool>('chromeCast#isConnected');
+  Future<void> pause() async {
+    // return channel(id).invokeMethod<void>('chromeCast#pause');
   }
 
   @override
-  Future<bool> isPlaying({@required int id}) {
-    return channel(id).invokeMethod<bool>('chromeCast#isPlaying');
+  Future<void> seek(bool relative, double interval) async {
+    // final Map<String, dynamic> args = {
+    //   'relative': relative,
+    //   'interval': interval
+    // };
+    // return channel(id).invokeMethod<void>('chromeCast#seek', args);
   }
 
-  Future<dynamic> _handleMethodCall(MethodCall call, int id) async {
-    switch (call.method) {
-      case 'chromeCast#didStartSession':
-        _eventStreamController.add(SessionStartedEvent(id));
-        break;
-      case 'chromeCast#didEndSession':
-        _eventStreamController.add(SessionEndedEvent(id));
-        break;
-      case 'chromeCast#requestDidComplete':
-        _eventStreamController.add(RequestDidCompleteEvent(id));
-        break;
-      case 'chromeCast#requestDidFail':
-        _eventStreamController
-            .add(RequestDidFailEvent(id, call.arguments['error']));
-        break;
+  @override
+  Future<void> stop() async {
+    // return channel(id).invokeMethod<void>('chromeCast#stop');
+  }
+
+  @override
+  Future<bool> isPlaying() async {
+    // return channel(id).invokeMethod<bool>('chromeCast#isPlaying');
+    return false;
+  }
+
+  // Future<dynamic> _handleMethodCall(MethodCall call, int id) async {
+  //   switch (call.method) {
+  //     case 'chromeCast#didStartSession':
+  //       _eventStreamController.add(SessionStartedEvent(id));
+  //       break;
+  //     case 'chromeCast#didEndSession':
+  //       _eventStreamController.add(SessionEndedEvent(id));
+  //       break;
+  //     case 'chromeCast#requestDidComplete':
+  //       _eventStreamController.add(RequestDidCompleteEvent(id));
+  //       break;
+  //     case 'chromeCast#requestDidFail':
+  //       _eventStreamController
+  //           .add(RequestDidFailEvent(id, call.arguments['error']));
+  //       break;
+  //     default:
+  //       throw MissingPluginException();
+  //   }
+  // }
+
+  ChromeCastEvent _handleEvent(Map<dynamic, dynamic> event) {
+    final eventName = event['event'].toString();
+    switch (eventName) {
+      case 'didStartSession':
+      case 'resumedSession':
+      case 'alreadyConnectedSession':
+        return SessionStartedEvent();
+      case 'didEndSession':
+      case 'failedToStartSession':
+        return SessionEndedEvent();
+      case 'connectingSession':
+        return SessionConnectingEvent();
+      case 'requestDidComplete':
+        return RequestDidCompleteEvent();
+      case 'requestDidFail':
+        return RequestDidFailEvent(event['error']);
       default:
         throw MissingPluginException();
     }
-  }
-
-  @override
-  Widget buildView(Map<String, dynamic> arguments,
-      PlatformViewCreatedCallback onPlatformViewCreated) {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return AndroidView(
-        viewType: 'ChromeCastButton',
-        onPlatformViewCreated: onPlatformViewCreated,
-        creationParams: arguments,
-        creationParamsCodec: const StandardMessageCodec(),
-      );
-    }
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return UiKitView(
-        viewType: 'ChromeCastButton',
-        onPlatformViewCreated: onPlatformViewCreated,
-        creationParams: arguments,
-        creationParamsCodec: const StandardMessageCodec(),
-      );
-    }
-    return Text('$defaultTargetPlatform is not supported by ChromeCast plugin');
   }
 }

@@ -6,6 +6,17 @@ A Flutter plugin for iOS and Android for connecting to cast devices like Chromec
 
 First, add `flutter_video_cast` as a [dependency in your pubspec.yaml file](https://flutter.io/using-packages/).
 
+### Run generator
+```
+flutter pub run pigeon \
+  --input pigeons/messages.dart \
+  --dart_out lib/pigeon.dart \
+  --objc_header_out ios/Runner/pigeon.h \
+  --objc_source_out ios/Runner/pigeon.m \
+  --java_out ./android/app/src/main/java/dev/flutter/pigeon/Pigeon.java \
+  --java_package "dev.flutter.pigeon"
+```
+
 ### iOS
 
 Set the minimum os target to iOS 11.0.
@@ -39,6 +50,22 @@ import GoogleCast
 
 Opt-in to the embedded views preview by adding a boolean property to the app's `Info.plist` file
 with the key `io.flutter.embedded_views_preview` and the value `YES`.
+
+info.plist:
+```
+<key>NSBonjourServices</key>
+<array>
+  <string>_googlecast._tcp</string>
+  <string>_ABCD1234._googlecast._tcp</string>
+</array>
+```
+Use translations if you want
+```
+<key>NSLocalNetworkUsageDescription</key>
+<string>${PRODUCT_NAME} uses the local network to discover Cast-enabled devices on your WiFi
+network.</string>
+```
+
 
 ### Android
 

@@ -4,10 +4,10 @@ part of flutter_video_cast;
 ///
 /// Pass to [ChromeCastButton.onButtonCreated] to receive a [ChromeCastController]
 /// when the button is created.
-typedef void OnButtonCreated(ChromeCastController controller);
+typedef OnButtonCreated = void Function(ChromeCastController controller);
 
 /// Callback method for when a request has failed.
-typedef void OnRequestFailed(String error);
+typedef OnRequestFailed = void Function(String error);
 
 /// Widget that displays the ChromeCast button.
 class ChromeCastButton extends StatelessWidget {
@@ -15,7 +15,10 @@ class ChromeCastButton extends StatelessWidget {
   ChromeCastButton(
       {Key key,
       this.size = 30.0,
-      this.color = Colors.black,
+      this.color = Colors.white,
+      this.connectColor = Colors.blue,
+      this.bottomSheetColor = Colors.white,
+      @required this.controller,
       this.onButtonCreated,
       this.onSessionStarted,
       this.onSessionEnded,
@@ -31,8 +34,13 @@ class ChromeCastButton extends StatelessWidget {
   final double size;
 
   /// The color of the button.
-  /// This is only supported on iOS at the moment.
   final Color color;
+
+  /// The color of the button when connecting to a device
+  final Color connectColor;
+
+  /// The color of the bottom sheet
+  final Color bottomSheetColor;
 
   /// Callback method for when the button is ready to be used.
   ///
@@ -51,45 +59,76 @@ class ChromeCastButton extends StatelessWidget {
   /// Called when a cast request has failed.
   final OnRequestFailed onRequestFailed;
 
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, dynamic> args = {
-      'red': color.red,
-      'green': color.green,
-      'blue': color.blue,
-      'alpha': color.alpha
-    };
-    return SizedBox(
-      width: size,
-      height: size,
-      child: _chromeCastPlatform.buildView(args, _onPlatformViewCreated),
-    );
-  }
+  final ChromeCastController controller;
 
-  Future<void> _onPlatformViewCreated(int id) async {
-    final ChromeCastController controller = await ChromeCastController.init(id);
-    if (onButtonCreated != null) {
-      onButtonCreated(controller);
-    }
-    if (onSessionStarted != null) {
-      _chromeCastPlatform
-          .onSessionStarted(id: id)
-          .listen((_) => onSessionStarted());
-    }
-    if (onSessionEnded != null) {
-      _chromeCastPlatform
-          .onSessionEnded(id: id)
-          .listen((_) => onSessionEnded());
-    }
-    if (onRequestCompleted != null) {
-      _chromeCastPlatform
-          .onRequestCompleted(id: id)
-          .listen((_) => onRequestCompleted());
-    }
-    if (onRequestFailed != null) {
-      _chromeCastPlatform
-          .onRequestFailed(id: id)
-          .listen((event) => onRequestFailed(event.error));
-    }
-  }
+  @override
+  Widget build(BuildContext context) => StreamBuilder(
+    // stream: Future.delayed(Duration.zero).asStream(),
+      stream: controller.events.where((event) =>
+          event is SessionStartedEvent ||
+          event is SessionEndedEvent ||
+          event is SessionConnectingEvent),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData ||
+            snapshot.hasError ||
+            snapshot.data is SessionEndedEvent) {
+          return GestureDetector(
+              onTap: () async {
+                final devices = await controller.discoverDevices();
+
+                await showModalBottomSheet(
+                  context: context,
+                  backgroundColor: bottomSheetColor,
+                  isScrollControlled: true,
+                  clipBehavior: Clip.antiAliasWithSaveLayer,
+                  builder: (context) => SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.4,
+                      child: ListView.builder(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          itemCount: devices.length,
+                          itemBuilder: (context, index) => InkWell(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                controller.connect(deviceId: devices[index].id);
+                              },
+                              child: Container(
+                                  decoration: BoxDecoration(
+                                      border: Border(
+                                          bottom: BorderSide(
+                                              color: Colors.grey.shade300,
+                                              width: 0.16))),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 16),
+                                  child: Text(devices[index].name))))),
+                );
+              },
+              behavior: HitTestBehavior.translucent,
+              child: SvgPicture.asset('assets/icons/ic_cast_24dp.svg',
+                  package: 'flutter_video_cast', height: size, color: color));
+        } else if (snapshot.data is SessionStartedEvent) {
+          return GestureDetector(
+              onTap: () => controller.disconnect(),
+              behavior: HitTestBehavior.translucent,
+              child: SvgPicture.asset('assets/icons/ic_cast_connected_24dp.svg',
+                  package: 'flutter_video_cast', height: size, color: color));
+        }
+
+        return GestureDetector(
+            onTap: () => controller.disconnect(),
+            behavior: HitTestBehavior.translucent,
+            child: SequenceAnimator(childrenSequence: [
+              SvgPicture.asset('assets/icons/ic_cast0_24dp.svg',
+                  package: 'flutter_video_cast',
+                  height: size,
+                  color: connectColor),
+              SvgPicture.asset('assets/icons/ic_cast1_24dp.svg',
+                  package: 'flutter_video_cast',
+                  height: size,
+                  color: connectColor),
+              SvgPicture.asset('assets/icons/ic_cast2_24dp.svg',
+                  package: 'flutter_video_cast',
+                  height: size,
+                  color: connectColor),
+            ]));
+      });
 }

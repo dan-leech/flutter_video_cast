@@ -1,0 +1,11 @@
+# pedantic: 1.9.*
+include: package:pedantic/analysis_options.1.9.0.yaml
+
+analyzer:
+  errors:
+    missing_required_param: error
+    missing_return: error
+    must_be_immutable: error
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"

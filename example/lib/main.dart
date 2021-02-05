@@ -25,6 +25,21 @@ class _CastSampleState extends State<CastSample> {
   bool _playing = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    _controller = ChromeCastController.init();
+    _controller.onSessionStarted().listen((event) {
+      return _onSessionStarted;
+    });
+    _controller
+        .onSessionEnded()
+        .listen((event) {
+          setState(() => _state = AppState.idle);
+        });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -40,14 +55,12 @@ class _CastSampleState extends State<CastSample> {
                 print('AirPlay status: $status'),
           ),
           ChromeCastButton(
-            size: CastSample._iconSize,
+            controller: _controller,
+            size: CastSample._iconSize * 0.6,
             color: Colors.white,
-            onButtonCreated: _onButtonCreated,
-            onSessionStarted: _onSessionStarted,
-            onSessionEnded: () => setState(() => _state = AppState.idle),
-            onRequestCompleted: _onRequestCompleted,
-            onRequestFailed: _onRequestFailed,
+            connectColor: Colors.amber,
           ),
+          SizedBox(width: 50)
         ],
       ),
       body: Center(child: _handleState()),
@@ -98,15 +111,15 @@ class _CastSampleState extends State<CastSample> {
     setState(() => _playing = !playing);
   }
 
-  Future<void> _onButtonCreated(ChromeCastController controller) async {
-    _controller = controller;
-    await _controller.addSessionListener();
-  }
-
   Future<void> _onSessionStarted() async {
     setState(() => _state = AppState.connected);
     await _controller.loadMedia(
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4');
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        title: 'title',
+        description: 'description',
+        studio: 'studio',
+        thumbnailUrl:
+            'https://miro.medium.com/max/9216/1*BMMyf99KlbX0ZPhbuqPlIQ.jpeg');
   }
 
   Future<void> _onRequestCompleted() async {
