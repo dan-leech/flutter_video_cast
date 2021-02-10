@@ -11,9 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  stream_transform: ^1.2.0
+  stream_transform: ">=1.2.0 <2.0.0"
   flutter_svg: ">=0.0.1 <=0.19.1"
   freezed_annotation: ^0.12.0
+  enum_to_string: ">=1.0.0 <2.0.0"
 
 dev_dependencies:
   flutter_test:

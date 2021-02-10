@@ -1,5 +1,6 @@
 library flutter_video_cast;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -14,3 +15,4 @@ import 'package:flutter_video_cast/src/widgets/sequence_animator.dart';
 part 'src/air_play/air_play_button.dart';
 part 'src/chrome_cast/chrome_cast_button.dart';
 part 'src/chrome_cast/chrome_cast_controller.dart';
+part 'src/chrome_cast/chrome_cast_exceptions.dart';

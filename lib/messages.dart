@@ -58,19 +58,21 @@ class IsConnectedMessage {
 class LoadMediaMessage {
   String url;
   String title;
-  String description;
+  String descr;
   String studio;
   String thumbnailUrl;
   int position;
+  bool autoPlay;
 
   Object encode() {
     final Map<Object, Object> pigeonMap = <Object, Object>{};
     pigeonMap['url'] = url;
     pigeonMap['title'] = title;
-    pigeonMap['description'] = description;
+    pigeonMap['descr'] = descr;
     pigeonMap['studio'] = studio;
     pigeonMap['thumbnailUrl'] = thumbnailUrl;
     pigeonMap['position'] = position;
+    pigeonMap['autoPlay'] = autoPlay;
     return pigeonMap;
   }
 
@@ -79,10 +81,62 @@ class LoadMediaMessage {
     return LoadMediaMessage()
       ..url = pigeonMap['url'] as String
       ..title = pigeonMap['title'] as String
-      ..description = pigeonMap['description'] as String
+      ..descr = pigeonMap['descr'] as String
       ..studio = pigeonMap['studio'] as String
       ..thumbnailUrl = pigeonMap['thumbnailUrl'] as String
-      ..position = pigeonMap['position'] as int;
+      ..position = pigeonMap['position'] as int
+      ..autoPlay = pigeonMap['autoPlay'] as bool;
+  }
+}
+
+class SeekMessage {
+  bool relative;
+  double interval;
+
+  Object encode() {
+    final Map<Object, Object> pigeonMap = <Object, Object>{};
+    pigeonMap['relative'] = relative;
+    pigeonMap['interval'] = interval;
+    return pigeonMap;
+  }
+
+  static SeekMessage decode(Object message) {
+    final Map<Object, Object> pigeonMap = message as Map<Object, Object>;
+    return SeekMessage()
+      ..relative = pigeonMap['relative'] as bool
+      ..interval = pigeonMap['interval'] as double;
+  }
+}
+
+class IsPlayingMessage {
+  int isPlaying;
+
+  Object encode() {
+    final Map<Object, Object> pigeonMap = <Object, Object>{};
+    pigeonMap['isPlaying'] = isPlaying;
+    return pigeonMap;
+  }
+
+  static IsPlayingMessage decode(Object message) {
+    final Map<Object, Object> pigeonMap = message as Map<Object, Object>;
+    return IsPlayingMessage()
+      ..isPlaying = pigeonMap['isPlaying'] as int;
+  }
+}
+
+class PositionMessage {
+  double position;
+
+  Object encode() {
+    final Map<Object, Object> pigeonMap = <Object, Object>{};
+    pigeonMap['position'] = position;
+    return pigeonMap;
+  }
+
+  static PositionMessage decode(Object message) {
+    final Map<Object, Object> pigeonMap = message as Map<Object, Object>;
+    return PositionMessage()
+      ..position = pigeonMap['position'] as double;
   }
 }
 
@@ -218,6 +272,139 @@ class VideoCastApi {
       );
     } else {
       // noop
+    }
+  }
+
+  Future<void> play() async {
+    const BasicMessageChannel<Object> channel =
+        BasicMessageChannel<Object>('dev.flutter.pigeon.VideoCastApi.play', StandardMessageCodec());
+    final Map<Object, Object> replyMap = await channel.send(null) as Map<Object, Object>;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+        details: null,
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object, Object> error = replyMap['error'] as Map<Object, Object>;
+      throw PlatformException(
+        code: error['code'] as String,
+        message: error['message'] as String,
+        details: error['details'],
+      );
+    } else {
+      // noop
+    }
+  }
+
+  Future<void> pause() async {
+    const BasicMessageChannel<Object> channel =
+        BasicMessageChannel<Object>('dev.flutter.pigeon.VideoCastApi.pause', StandardMessageCodec());
+    final Map<Object, Object> replyMap = await channel.send(null) as Map<Object, Object>;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+        details: null,
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object, Object> error = replyMap['error'] as Map<Object, Object>;
+      throw PlatformException(
+        code: error['code'] as String,
+        message: error['message'] as String,
+        details: error['details'],
+      );
+    } else {
+      // noop
+    }
+  }
+
+  Future<void> stop() async {
+    const BasicMessageChannel<Object> channel =
+        BasicMessageChannel<Object>('dev.flutter.pigeon.VideoCastApi.stop', StandardMessageCodec());
+    final Map<Object, Object> replyMap = await channel.send(null) as Map<Object, Object>;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+        details: null,
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object, Object> error = replyMap['error'] as Map<Object, Object>;
+      throw PlatformException(
+        code: error['code'] as String,
+        message: error['message'] as String,
+        details: error['details'],
+      );
+    } else {
+      // noop
+    }
+  }
+
+  Future<void> seek(SeekMessage arg) async {
+    final Object encoded = arg.encode();
+    const BasicMessageChannel<Object> channel =
+        BasicMessageChannel<Object>('dev.flutter.pigeon.VideoCastApi.seek', StandardMessageCodec());
+    final Map<Object, Object> replyMap = await channel.send(encoded) as Map<Object, Object>;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+        details: null,
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object, Object> error = replyMap['error'] as Map<Object, Object>;
+      throw PlatformException(
+        code: error['code'] as String,
+        message: error['message'] as String,
+        details: error['details'],
+      );
+    } else {
+      // noop
+    }
+  }
+
+  Future<IsPlayingMessage> isPlaying() async {
+    const BasicMessageChannel<Object> channel =
+        BasicMessageChannel<Object>('dev.flutter.pigeon.VideoCastApi.isPlaying', StandardMessageCodec());
+    final Map<Object, Object> replyMap = await channel.send(null) as Map<Object, Object>;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+        details: null,
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object, Object> error = replyMap['error'] as Map<Object, Object>;
+      throw PlatformException(
+        code: error['code'] as String,
+        message: error['message'] as String,
+        details: error['details'],
+      );
+    } else {
+      return IsPlayingMessage.decode(replyMap['result']);
+    }
+  }
+
+  Future<PositionMessage> getPosition() async {
+    const BasicMessageChannel<Object> channel =
+        BasicMessageChannel<Object>('dev.flutter.pigeon.VideoCastApi.getPosition', StandardMessageCodec());
+    final Map<Object, Object> replyMap = await channel.send(null) as Map<Object, Object>;
+    if (replyMap == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+        details: null,
+      );
+    } else if (replyMap['error'] != null) {
+      final Map<Object, Object> error = replyMap['error'] as Map<Object, Object>;
+      throw PlatformException(
+        code: error['code'] as String,
+        message: error['message'] as String,
+        details: error['details'],
+      );
+    } else {
+      return PositionMessage.decode(replyMap['result']);
     }
   }
 }

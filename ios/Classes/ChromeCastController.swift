@@ -12,11 +12,6 @@ class ChromeCastController: NSObject {
     // MARK: - Internal properties
     private let castManager = GoogleCastManager.instance
     var eventSink: FlutterEventSink?
-    var devices = [GCKDevice](){
-        didSet{
-            print("did set device")
-        }
-    }
     
     // MARK: - Init
     
@@ -39,6 +34,9 @@ extension ChromeCastController: FLTVideoCastApi {
     func initialize(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
         castManager.initialise()
         castManager.addSessionStatusListener(listener: self)
+        castManager.addRequestResultListenerListener(listener: self)
+        castManager.addDeviceDiscoveryListener(listener: self)
+        castManager.addGCKMediaInformationListenerlistener(listener: self)
     }
     
     func discoverDevices(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTDevicesMessage? {
@@ -46,17 +44,7 @@ extension ChromeCastController: FLTVideoCastApi {
         //        NSLog("devices: %i", devices.count)
         
         let res = FLTDevicesMessage()
-        
-        var devicesData = [[String: String?]]()
-        for device in devices {
-            devicesData.append(["id": device.deviceID, "name": device.friendlyName])
-        }
-        
-        let jsonEncoder = JSONEncoder()
-        let jsonData = try! jsonEncoder.encode(devicesData)
-        let json = String(data: jsonData, encoding: String.Encoding.utf8)
-        
-        res.devicesData = json
+        res.devicesData = convertDevicesToJson(devices: devices)
         //        NSLog("json: %@", NSString(string: json!))
         
         return res
@@ -94,13 +82,76 @@ extension ChromeCastController: FLTVideoCastApi {
             return
         }
         
-        let mediaInformation = castManager.buildMediaInformation(contentURL: mediaUrl, title: input.title ?? "", description: input.description ?? "", studio: input.studio ?? "", duration: nil, streamType: GCKMediaStreamType.buffered, thumbnailUrl: input.thumbnailUrl, customData: nil)
+        let mediaInformation = castManager.buildMediaInformation(contentURL: mediaUrl, title: input.title ?? "", description: input.descr ?? "", studio: input.studio ?? "", duration: nil, streamType: GCKMediaStreamType.buffered, thumbnailUrl: input.thumbnailUrl, customData: nil)
         
-        castManager.startSelectedItemRemotely(mediaInformation, at: TimeInterval.init(truncating: input.position ?? 0), completion: { (done) in
+        castManager.startSelectedItemRemotely(mediaInformation, at: TimeInterval.init(truncating: input.position ?? 0), autoplay: input.autoPlay?.boolValue ?? true) { (done) in
             if !done {
-                error.pointee = FlutterError(code: "flutter_video_cast", message: "session is not started", details: nil)
+                error.respondWithSessionNotStartedError()
             }
-        })
+        }
+    }
+    
+    func play(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.playSelectedItemRemotely() { (done) in
+            if !done {
+                error.respondWithSessionNotStartedError()
+            }
+        }
+    }
+    
+    func pause(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.pauseSelectedItemRemotely() { (done) in
+            if !done {
+                error.respondWithSessionNotStartedError()
+            }
+        }
+    }
+    
+    func stop(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.stopSelectedItemRemotely() { (done) in
+            if !done {
+                error.respondWithSessionNotStartedError()
+            }
+        }
+    }
+    
+    func seek(_ input: FLTSeekMessage, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.seekSelectedItemRemotely(at: TimeInterval.init(truncating: input.interval ?? 0), relative: input.relative?.boolValue ?? false) { (done) in
+            if !done {
+                error.respondWithSessionNotStartedError()
+            }
+        }
+    }
+    
+    func isPlaying(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTIsPlayingMessage? {
+        let state = castManager.getMediaPlayerState()
+        
+        let res = FLTIsPlayingMessage()
+        res.isPlaying = state == .playing ? 1 : 0
+        
+        return res
+    }
+    
+    func getPosition(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTPositionMessage? {
+        let pos = castManager.getCurrentPlaybackTime()
+        
+        let res = FLTPositionMessage()
+        res.position = pos as NSNumber? ?? 0.0
+        
+        return res
+    }
+    
+    
+    private func convertDevicesToJson(devices: [GCKDevice]) -> String? {
+        var devicesData = [[String: String?]]()
+        for device in devices {
+            devicesData.append(["id": device.deviceID, "name": device.friendlyName])
+        }
+        
+        let jsonEncoder = JSONEncoder()
+        let jsonData = try! jsonEncoder.encode(devicesData)
+        
+        return String(data: jsonData, encoding: String.Encoding.utf8)
     }
 }
 
@@ -149,5 +200,58 @@ extension ChromeCastController: SessionStatusListener {
                 "event": "connectingSession"
             ])
         }
+    }
+}
+
+// MARK: - RequestResultListener
+
+extension ChromeCastController: RequestResultListener {
+    func onComplete() {
+        eventSink?([
+            "event": "requestDidComplete"
+        ])
+    }
+    
+    func onError(error: String) {
+        eventSink?([
+            "event": "requestDidFail",
+            "error": error
+        ])
+    }
+}
+
+// MARK: - DeviceDiscoveryListener
+
+extension ChromeCastController: DeviceDiscoveryListener {
+    func onChange(devices: [GCKDevice]) {
+        eventSink?([
+            "event": "didUpdateDeviceList",
+            "data": convertDevicesToJson(devices: devices)
+        ])
+    }
+}
+
+
+// MARK: - GCKMediaInformationListener
+
+extension ChromeCastController: GCKMediaInformationListener {
+    func onChange(client: GCKRemoteMediaClient, mediaInfo: GCKMediaInformation?) {
+        let duration = mediaInfo?.streamDuration
+        let position = client.approximateStreamPosition()
+        
+        eventSink?([
+            "event": "didUpdatePlayback",
+            "duration": duration as Any,
+            "position": (position.isNaN ? nil : position) as Any,
+            "state": (client.mediaStatus?.playerState.toString() ?? "unknown") as Any,
+            "idleReason": (client.mediaStatus?.idleReason.toString() ?? "none") as Any
+        ])
+    }
+}
+
+// MARK: - error extension
+extension AutoreleasingUnsafeMutablePointer {
+    func respondWithSessionNotStartedError() {
+        self.pointee = FlutterError(code: "flutter_video_cast", message: "session is not started", details: nil) as! Pointee
     }
 }

@@ -8,6 +8,10 @@ class ChromeCastController {
 
   Stream<ChromeCastEvent> get events => _chromeCastPlatform.events;
 
+  List<DeviceEntity> get devices => _chromeCastPlatform.devices;
+
+  SessionEvent get sessionEvent => _chromeCastPlatform.sessionEvent;
+
   /// Initialize control of a [ChromeCastButton].
   static ChromeCastController init() {
     _chromeCastPlatform.init();
@@ -16,13 +20,19 @@ class ChromeCastController {
 
   /// Load a new media by providing an [url].
   Future<void> loadMedia(String url,
-      {String title, description, studio, thumbnailUrl, int position}) {
+      {String title,
+      description,
+      studio,
+      thumbnailUrl,
+      int position,
+      bool autoPlay = true}) {
     return _chromeCastPlatform.loadMedia(url,
         title: title,
         description: description,
         studio: studio,
         thumbnailUrl: thumbnailUrl,
-        position: position);
+        position: position,
+        autoPlay: autoPlay);
   }
 
   /// Plays the video playback.
@@ -52,12 +62,15 @@ class ChromeCastController {
     return _chromeCastPlatform.isPlaying();
   }
 
+  Future<double> getPosition() {
+    return _chromeCastPlatform.getPosition();
+  }
+
   /// Get available devices
   Future<List<DeviceEntity>> discoverDevices() async {
     final res = await _chromeCastPlatform.discoverDevices();
     final result = <DeviceEntity>[];
 
-    print('discoverDevices -> ${res.devicesData}');
     final data = List.from(jsonDecode(res.devicesData));
     data.forEach((element) {
       result.add(DeviceEntity.fromJson(element));
@@ -81,6 +94,8 @@ class ChromeCastController {
     return _chromeCastPlatform.isConnected();
   }
 
+  Stream<SessionEvent> onSessionEvent() => _chromeCastPlatform.onSessionEvent();
+
   Stream<SessionStartedEvent> onSessionStarted() =>
       _chromeCastPlatform.onSessionStarted();
 
@@ -90,9 +105,17 @@ class ChromeCastController {
   Stream<SessionConnectingEvent> onSessionConnecting() =>
       _chromeCastPlatform.onSessionConnecting();
 
+  Stream<RequestEvent> onRequestEvent() => _chromeCastPlatform.onRequestEvent();
+
   Stream<RequestDidCompleteEvent> onRequestCompleted() =>
       _chromeCastPlatform.onRequestCompleted();
 
   Stream<RequestDidFailEvent> onRequestFailed() =>
       _chromeCastPlatform.onRequestFailed();
+
+  Stream<DidUpdateDeviceListEvent> onDidUpdateDeviceList() =>
+      _chromeCastPlatform.onDidUpdateDeviceList();
+
+  Stream<DidUpdatePlaybackEvent> onDidUpdatePlayback() =>
+      _chromeCastPlatform.onDidUpdatePlayback();
 }

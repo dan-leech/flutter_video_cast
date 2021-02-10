@@ -38,6 +38,18 @@ static NSDictionary* wrapResult(NSDictionary *result, FlutterError *error) {
 +(FLTLoadMediaMessage*)fromMap:(NSDictionary*)dict;
 -(NSDictionary*)toMap;
 @end
+@interface FLTSeekMessage ()
++(FLTSeekMessage*)fromMap:(NSDictionary*)dict;
+-(NSDictionary*)toMap;
+@end
+@interface FLTIsPlayingMessage ()
++(FLTIsPlayingMessage*)fromMap:(NSDictionary*)dict;
+-(NSDictionary*)toMap;
+@end
+@interface FLTPositionMessage ()
++(FLTPositionMessage*)fromMap:(NSDictionary*)dict;
+-(NSDictionary*)toMap;
+@end
 
 @implementation FLTDevicesMessage
 +(FLTDevicesMessage*)fromMap:(NSDictionary*)dict {
@@ -92,9 +104,9 @@ static NSDictionary* wrapResult(NSDictionary *result, FlutterError *error) {
   if ((NSNull *)result.title == [NSNull null]) {
     result.title = nil;
   }
-  result.description = dict[@"description"];
-  if ((NSNull *)result.description == [NSNull null]) {
-    result.description = nil;
+  result.descr = dict[@"descr"];
+  if ((NSNull *)result.descr == [NSNull null]) {
+    result.descr = nil;
   }
   result.studio = dict[@"studio"];
   if ((NSNull *)result.studio == [NSNull null]) {
@@ -108,10 +120,60 @@ static NSDictionary* wrapResult(NSDictionary *result, FlutterError *error) {
   if ((NSNull *)result.position == [NSNull null]) {
     result.position = nil;
   }
+  result.autoPlay = dict[@"autoPlay"];
+  if ((NSNull *)result.autoPlay == [NSNull null]) {
+    result.autoPlay = nil;
+  }
   return result;
 }
 -(NSDictionary*)toMap {
-  return [NSDictionary dictionaryWithObjectsAndKeys:(self.url ? self.url : [NSNull null]), @"url", (self.title ? self.title : [NSNull null]), @"title", (self.description ? self.description : [NSNull null]), @"description", (self.studio ? self.studio : [NSNull null]), @"studio", (self.thumbnailUrl ? self.thumbnailUrl : [NSNull null]), @"thumbnailUrl", (self.position ? self.position : [NSNull null]), @"position", nil];
+  return [NSDictionary dictionaryWithObjectsAndKeys:(self.url ? self.url : [NSNull null]), @"url", (self.title ? self.title : [NSNull null]), @"title", (self.descr ? self.descr : [NSNull null]), @"descr", (self.studio ? self.studio : [NSNull null]), @"studio", (self.thumbnailUrl ? self.thumbnailUrl : [NSNull null]), @"thumbnailUrl", (self.position ? self.position : [NSNull null]), @"position", (self.autoPlay ? self.autoPlay : [NSNull null]), @"autoPlay", nil];
+}
+@end
+
+@implementation FLTSeekMessage
++(FLTSeekMessage*)fromMap:(NSDictionary*)dict {
+  FLTSeekMessage* result = [[FLTSeekMessage alloc] init];
+  result.relative = dict[@"relative"];
+  if ((NSNull *)result.relative == [NSNull null]) {
+    result.relative = nil;
+  }
+  result.interval = dict[@"interval"];
+  if ((NSNull *)result.interval == [NSNull null]) {
+    result.interval = nil;
+  }
+  return result;
+}
+-(NSDictionary*)toMap {
+  return [NSDictionary dictionaryWithObjectsAndKeys:(self.relative ? self.relative : [NSNull null]), @"relative", (self.interval ? self.interval : [NSNull null]), @"interval", nil];
+}
+@end
+
+@implementation FLTIsPlayingMessage
++(FLTIsPlayingMessage*)fromMap:(NSDictionary*)dict {
+  FLTIsPlayingMessage* result = [[FLTIsPlayingMessage alloc] init];
+  result.isPlaying = dict[@"isPlaying"];
+  if ((NSNull *)result.isPlaying == [NSNull null]) {
+    result.isPlaying = nil;
+  }
+  return result;
+}
+-(NSDictionary*)toMap {
+  return [NSDictionary dictionaryWithObjectsAndKeys:(self.isPlaying ? self.isPlaying : [NSNull null]), @"isPlaying", nil];
+}
+@end
+
+@implementation FLTPositionMessage
++(FLTPositionMessage*)fromMap:(NSDictionary*)dict {
+  FLTPositionMessage* result = [[FLTPositionMessage alloc] init];
+  result.position = dict[@"position"];
+  if ((NSNull *)result.position == [NSNull null]) {
+    result.position = nil;
+  }
+  return result;
+}
+-(NSDictionary*)toMap {
+  return [NSDictionary dictionaryWithObjectsAndKeys:(self.position ? self.position : [NSNull null]), @"position", nil];
 }
 @end
 
@@ -208,6 +270,103 @@ void FLTVideoCastApiSetup(id<FlutterBinaryMessenger> binaryMessenger, id<FLTVide
         FLTLoadMediaMessage *input = [FLTLoadMediaMessage fromMap:message];
         [api loadMedia:input error:&error];
         callback(wrapResult(nil, error));
+      }];
+    }
+    else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [FlutterBasicMessageChannel
+        messageChannelWithName:@"dev.flutter.pigeon.VideoCastApi.play"
+        binaryMessenger:binaryMessenger];
+    if (api) {
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        [api play:&error];
+        callback(wrapResult(nil, error));
+      }];
+    }
+    else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [FlutterBasicMessageChannel
+        messageChannelWithName:@"dev.flutter.pigeon.VideoCastApi.pause"
+        binaryMessenger:binaryMessenger];
+    if (api) {
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        [api pause:&error];
+        callback(wrapResult(nil, error));
+      }];
+    }
+    else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [FlutterBasicMessageChannel
+        messageChannelWithName:@"dev.flutter.pigeon.VideoCastApi.stop"
+        binaryMessenger:binaryMessenger];
+    if (api) {
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        [api stop:&error];
+        callback(wrapResult(nil, error));
+      }];
+    }
+    else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [FlutterBasicMessageChannel
+        messageChannelWithName:@"dev.flutter.pigeon.VideoCastApi.seek"
+        binaryMessenger:binaryMessenger];
+    if (api) {
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        FLTSeekMessage *input = [FLTSeekMessage fromMap:message];
+        [api seek:input error:&error];
+        callback(wrapResult(nil, error));
+      }];
+    }
+    else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [FlutterBasicMessageChannel
+        messageChannelWithName:@"dev.flutter.pigeon.VideoCastApi.isPlaying"
+        binaryMessenger:binaryMessenger];
+    if (api) {
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        FLTIsPlayingMessage *output = [api isPlaying:&error];
+        callback(wrapResult([output toMap], error));
+      }];
+    }
+    else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [FlutterBasicMessageChannel
+        messageChannelWithName:@"dev.flutter.pigeon.VideoCastApi.getPosition"
+        binaryMessenger:binaryMessenger];
+    if (api) {
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        FlutterError *error;
+        FLTPositionMessage *output = [api getPosition:&error];
+        callback(wrapResult([output toMap], error));
       }];
     }
     else {

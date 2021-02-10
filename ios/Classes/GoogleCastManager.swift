@@ -7,6 +7,8 @@
 
 import Foundation
 import GoogleCast
+import AVFoundation
+import MediaPlayer
 
 enum CastSessionStatus {
     case started
@@ -31,6 +33,19 @@ protocol CastManagerDidUpdateMediaStatusDelegate: class {
 
 protocol SessionStatusListener: class {
     func onChange(status: CastSessionStatus) -> Void
+}
+
+protocol RequestResultListener: class {
+    func onComplete() -> Void
+    func onError(error: String) -> Void
+}
+
+protocol DeviceDiscoveryListener: class {
+    func onChange(devices: [GCKDevice]) -> Void
+}
+
+protocol GCKMediaInformationListener: class {
+    func onChange(client: GCKRemoteMediaClient, mediaInfo: GCKMediaInformation?) -> Void
 }
 
 class GoogleCastManager: NSObject {
@@ -59,6 +74,9 @@ class GoogleCastManager: NSObject {
             sessionStatusListener?.onChange(status: sessionStatus)
         }
     }
+    private var requestResultListener: RequestResultListener?
+    private var deviceDiscoveryListener: DeviceDiscoveryListener?
+    private var gckMediaInformationListener: GCKMediaInformationListener?
     private var gckMediaInformation: GCKMediaInformation?
     
     var discoveryManager: GCKDiscoveryManager!
@@ -84,6 +102,8 @@ class GoogleCastManager: NSObject {
         
         let criteria = GCKDiscoveryCriteria(applicationID: kReceiverAppID)
         let options = GCKCastOptions(discoveryCriteria: criteria)
+//        options.suspendSessionsWhenBackgrounded = false
+        options.physicalVolumeButtonsWillControlDeviceVolume = true
         GCKCastContext.setSharedInstanceWith(options)
         GCKCastContext.sharedInstance().useDefaultExpandedMediaControls = true
     }
@@ -124,6 +144,18 @@ class GoogleCastManager: NSObject {
     
     func addSessionStatusListener(listener: SessionStatusListener) {
         self.sessionStatusListener = listener
+    }
+    
+    func addRequestResultListenerListener(listener: RequestResultListener) {
+        self.requestResultListener = listener
+    }
+    
+    func addDeviceDiscoveryListener(listener: DeviceDiscoveryListener) {
+        self.deviceDiscoveryListener = listener
+    }
+    
+    func addGCKMediaInformationListenerlistener(listener: GCKMediaInformationListener) {
+        self.gckMediaInformationListener = listener
     }
     
     //styling connection list view and expanded media control view
@@ -209,13 +241,14 @@ class GoogleCastManager: NSObject {
     
     // MARK: - Start
     
-    func startSelectedItemRemotely(_ mediaInfo: GCKMediaInformation, at time: TimeInterval, completion: (Bool) -> Void) {
-        let castSession = sessionManager.currentCastSession
-        
-        if castSession != nil {
+    func startSelectedItemRemotely(_ mediaInfo: GCKMediaInformation, at time: TimeInterval, autoplay: Bool, completion: (Bool) -> Void) {
+        if let castSession = sessionManager.currentCastSession {
             let options = GCKMediaLoadOptions()
             options.playPosition = time
-            castSession?.remoteMediaClient?.loadMedia(mediaInfo, with: options)
+            options.autoplay = autoplay
+            if let request = castSession.remoteMediaClient?.loadMedia(mediaInfo, with: options) {
+                request.delegate = self
+            }
             completion(true)
             
             sessionStatus = .alreadyConnected
@@ -226,18 +259,12 @@ class GoogleCastManager: NSObject {
     
     // MARK: - Play/Resume
     
-    func playSelectedItemRemotely(to time: TimeInterval?, completion: (Bool) -> Void) {
-        let castSession = sessionManager.currentCastSession
-        if castSession != nil {
-            let remoteClient = castSession?.remoteMediaClient
-            if let time = time {
-                let options = GCKMediaSeekOptions()
-                options.interval = time
-                options.resumeState = .play
-                remoteClient?.seek(with: options)
-            } else {
-                remoteClient?.play()
-            }
+    func playSelectedItemRemotely(completion: (Bool) -> Void) {
+        if let castSession = sessionManager.currentCastSession,
+           let remoteClient = castSession.remoteMediaClient {
+            let request = remoteClient.play()
+            request.delegate = self
+            
             completion(true)
         } else {
             completion(false)
@@ -246,47 +273,81 @@ class GoogleCastManager: NSObject {
     
     // MARK: - Pause
     
-    func pauseSelectedItemRemotely(at time: TimeInterval?, completion: (Bool) -> Void) {
-        let castSession = sessionManager.currentCastSession
-        if castSession != nil {
-            let remoteClient = castSession?.remoteMediaClient
-            if let time = time {
-                let options = GCKMediaSeekOptions()
-                options.interval = time
-                options.resumeState = .pause
-                remoteClient?.seek(with: options)
-            } else {
-                remoteClient?.pause()
-            }
+    func pauseSelectedItemRemotely(completion: (Bool) -> Void) {
+        if let castSession = sessionManager.currentCastSession,
+           let remoteClient = castSession.remoteMediaClient {
+            let request = remoteClient.pause()
+            request.delegate = self
+            
             completion(true)
         } else {
             completion(false)
         }
     }
     
-    // MARK: - Update Current Time
+    // MARK: - Stop
     
-    func getCurrentPlaybackTime(completion: (TimeInterval?) -> Void) {
-        let castSession = sessionManager.currentCastSession
-        if castSession != nil {
-            let remoteClient = castSession?.remoteMediaClient
-            let currentTime = remoteClient?.approximateStreamPosition()
-            completion(currentTime)
+    func stopSelectedItemRemotely(completion: (Bool) -> Void) {
+        if let castSession = sessionManager.currentCastSession,
+           let remoteClient = castSession.remoteMediaClient {
+            let request = remoteClient.stop()
+            request.delegate = self
+            
+            completion(true)
         } else {
-            completion(nil)
+            completion(false)
         }
     }
     
-    // MARK: - Buffering status
+    // MARK: - Seek
     
-    func getMediaPlayerState(completion: (GCKMediaPlayerState) -> Void) {
+    func seekSelectedItemRemotely(at time: TimeInterval, relative: Bool, completion: (Bool) -> Void) {
         if let castSession = sessionManager.currentCastSession,
-            let remoteClient = castSession.remoteMediaClient,
-            let mediaStatus = remoteClient.mediaStatus {
-            completion(mediaStatus.playerState)
+           let remoteClient = castSession.remoteMediaClient {
+            let options = GCKMediaSeekOptions()
+            options.interval = time
+            options.relative = relative
+            let request = remoteClient.seek(with: options)
+            request.delegate = self
+            
+            completion(true)
+        } else {
+            completion(false)
+        }
+    }
+    
+    // MARK: - Get Current Time
+    
+    func getCurrentPlaybackTime() -> TimeInterval? {
+        if let castSession = sessionManager.currentCastSession,
+           let remoteClient = castSession.remoteMediaClient {
+            return remoteClient.approximateStreamPosition()
+        }
+        return nil
+    }
+    
+    // MARK: - Playing/Buffering status
+    
+    func getMediaPlayerState() -> GCKMediaPlayerState {
+        if let castSession = sessionManager.currentCastSession,
+           let remoteClient = castSession.remoteMediaClient,
+           let mediaStatus = remoteClient.mediaStatus {
+            return mediaStatus.playerState
         }
         
-        completion(GCKMediaPlayerState.unknown)
+        return GCKMediaPlayerState.unknown
+    }
+    
+    // MARK: - Player Idle reason
+    
+    func getMediaPlayerIdleReason() -> GCKMediaPlayerIdleReason {
+        if let castSession = sessionManager.currentCastSession,
+           let remoteClient = castSession.remoteMediaClient,
+           let mediaStatus = remoteClient.mediaStatus {
+            return mediaStatus.idleReason
+        }
+        
+        return GCKMediaPlayerIdleReason.none
     }
 }
 
@@ -298,6 +359,7 @@ extension GoogleCastManager: GCKDiscoveryManagerListener {
     
     func didUpdateDeviceList() {
         print("\(discoveryManager.deviceCount) device(s) has been discovered")
+        deviceDiscoveryListener?.onChange(devices: getAvailableDevices())
     }
     
     func didInsert(_ device: GCKDevice, at index: UInt) {
@@ -334,6 +396,17 @@ extension GoogleCastManager {
     }
 }
 
+// MARK: - GCKRequestDelegate
+extension GoogleCastManager: GCKRequestDelegate {
+    func requestDidComplete(_ request: GCKRequest) {
+        requestResultListener?.onComplete()
+    }
+    
+    func request(_ request: GCKRequest, didFailWithError error: GCKError) {
+        requestResultListener?.onError(error: error.localizedDescription)
+    }
+}
+
 // MARK: - GCKSessionManagerListener
 extension GoogleCastManager: GCKSessionManagerListener {
     public func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
@@ -367,6 +440,7 @@ extension GoogleCastManager: GCKRemoteMediaClientListener {
     func remoteMediaClient(_ client: GCKRemoteMediaClient, didUpdate mediaStatus: GCKMediaStatus?) {
         didUpdateMediaStatusDelegate?.gckDidUpdateMediaStatus(mediaInfo: mediaStatus?.mediaInformation)
         setMediaInfo(with: mediaStatus?.mediaInformation)
+        gckMediaInformationListener?.onChange(client: client, mediaInfo: gckMediaInformation)
     }
 }
 
@@ -384,4 +458,40 @@ func == (left: GCKDevice, right: GCKDevice) -> Bool {
 
 func != (left: GCKDevice, right: GCKDevice) -> Bool {
     return left.deviceID != right.deviceID && left.uniqueID != right.uniqueID
+}
+
+extension GCKMediaPlayerState {
+    func toString() -> String {
+        switch self.rawValue {
+        case GCKMediaPlayerState.playing.rawValue:
+            return "playing"
+        case GCKMediaPlayerState.buffering.rawValue:
+            return "buffering"
+        case GCKMediaPlayerState.idle.rawValue:
+            return "idle"
+        case GCKMediaPlayerState.loading.rawValue:
+            return "loading"
+        case GCKMediaPlayerState.paused.rawValue:
+            return "paused"
+        default:
+            return "unknown"
+        }
+    }
+}
+
+extension GCKMediaPlayerIdleReason {
+    func toString() -> String {
+        switch self.rawValue {
+        case GCKMediaPlayerIdleReason.cancelled.rawValue:
+            return "cancelled"
+        case GCKMediaPlayerIdleReason.error.rawValue:
+            return "error"
+        case GCKMediaPlayerIdleReason.finished.rawValue:
+            return "finished"
+        case GCKMediaPlayerIdleReason.interrupted.rawValue:
+            return "interrupted"
+        default:
+            return "none"
+        }
+    }
 }

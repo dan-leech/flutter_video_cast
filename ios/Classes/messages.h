@@ -11,6 +11,9 @@ NS_ASSUME_NONNULL_BEGIN
 @class FLTConnectMessage;
 @class FLTIsConnectedMessage;
 @class FLTLoadMediaMessage;
+@class FLTSeekMessage;
+@class FLTIsPlayingMessage;
+@class FLTPositionMessage;
 
 @interface FLTDevicesMessage : NSObject
 @property(nonatomic, copy, nullable) NSString * devicesData;
@@ -27,9 +30,23 @@ NS_ASSUME_NONNULL_BEGIN
 @interface FLTLoadMediaMessage : NSObject
 @property(nonatomic, copy, nullable) NSString * url;
 @property(nonatomic, copy, nullable) NSString * title;
-@property(nonatomic, copy, nullable) NSString * description;
+@property(nonatomic, copy, nullable) NSString * descr;
 @property(nonatomic, copy, nullable) NSString * studio;
 @property(nonatomic, copy, nullable) NSString * thumbnailUrl;
+@property(nonatomic, strong, nullable) NSNumber * position;
+@property(nonatomic, strong, nullable) NSNumber * autoPlay;
+@end
+
+@interface FLTSeekMessage : NSObject
+@property(nonatomic, strong, nullable) NSNumber * relative;
+@property(nonatomic, strong, nullable) NSNumber * interval;
+@end
+
+@interface FLTIsPlayingMessage : NSObject
+@property(nonatomic, strong, nullable) NSNumber * isPlaying;
+@end
+
+@interface FLTPositionMessage : NSObject
 @property(nonatomic, strong, nullable) NSNumber * position;
 @end
 
@@ -40,6 +57,12 @@ NS_ASSUME_NONNULL_BEGIN
 -(void)disconnect:(FlutterError *_Nullable *_Nonnull)error;
 -(nullable FLTIsConnectedMessage *)isConnected:(FlutterError *_Nullable *_Nonnull)error;
 -(void)loadMedia:(FLTLoadMediaMessage*)input error:(FlutterError *_Nullable *_Nonnull)error;
+-(void)play:(FlutterError *_Nullable *_Nonnull)error;
+-(void)pause:(FlutterError *_Nullable *_Nonnull)error;
+-(void)stop:(FlutterError *_Nullable *_Nonnull)error;
+-(void)seek:(FLTSeekMessage*)input error:(FlutterError *_Nullable *_Nonnull)error;
+-(nullable FLTIsPlayingMessage *)isPlaying:(FlutterError *_Nullable *_Nonnull)error;
+-(nullable FLTPositionMessage *)getPosition:(FlutterError *_Nullable *_Nonnull)error;
 @end
 
 extern void FLTVideoCastApiSetup(id<FlutterBinaryMessenger> binaryMessenger, id<FLTVideoCastApi> _Nullable api);

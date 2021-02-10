@@ -80,9 +80,9 @@ public class Messages {
     public String getTitle() { return title; }
     public void setTitle(String setterArg) { this.title = setterArg; }
 
-    private String description;
-    public String getDescription() { return description; }
-    public void setDescription(String setterArg) { this.description = setterArg; }
+    private String descr;
+    public String getDescr() { return descr; }
+    public void setDescr(String setterArg) { this.descr = setterArg; }
 
     private String studio;
     public String getStudio() { return studio; }
@@ -96,14 +96,19 @@ public class Messages {
     public Long getPosition() { return position; }
     public void setPosition(Long setterArg) { this.position = setterArg; }
 
+    private Boolean autoPlay;
+    public Boolean getAutoPlay() { return autoPlay; }
+    public void setAutoPlay(Boolean setterArg) { this.autoPlay = setterArg; }
+
     HashMap toMap() {
       HashMap<String, Object> toMapResult = new HashMap<>();
       toMapResult.put("url", url);
       toMapResult.put("title", title);
-      toMapResult.put("description", description);
+      toMapResult.put("descr", descr);
       toMapResult.put("studio", studio);
       toMapResult.put("thumbnailUrl", thumbnailUrl);
       toMapResult.put("position", position);
+      toMapResult.put("autoPlay", autoPlay);
       return toMapResult;
     }
     static LoadMediaMessage fromMap(HashMap map) {
@@ -112,14 +117,80 @@ public class Messages {
       fromMapResult.url = (String)url;
       Object title = map.get("title");
       fromMapResult.title = (String)title;
-      Object description = map.get("description");
-      fromMapResult.description = (String)description;
+      Object descr = map.get("descr");
+      fromMapResult.descr = (String)descr;
       Object studio = map.get("studio");
       fromMapResult.studio = (String)studio;
       Object thumbnailUrl = map.get("thumbnailUrl");
       fromMapResult.thumbnailUrl = (String)thumbnailUrl;
       Object position = map.get("position");
       fromMapResult.position = (position == null) ? null : ((position instanceof Integer) ? (Integer)position : (Long)position);
+      Object autoPlay = map.get("autoPlay");
+      fromMapResult.autoPlay = (Boolean)autoPlay;
+      return fromMapResult;
+    }
+  }
+
+  /** Generated class from Pigeon that represents data sent in messages. */
+  public static class SeekMessage {
+    private Boolean relative;
+    public Boolean getRelative() { return relative; }
+    public void setRelative(Boolean setterArg) { this.relative = setterArg; }
+
+    private Double interval;
+    public Double getInterval() { return interval; }
+    public void setInterval(Double setterArg) { this.interval = setterArg; }
+
+    HashMap toMap() {
+      HashMap<String, Object> toMapResult = new HashMap<>();
+      toMapResult.put("relative", relative);
+      toMapResult.put("interval", interval);
+      return toMapResult;
+    }
+    static SeekMessage fromMap(HashMap map) {
+      SeekMessage fromMapResult = new SeekMessage();
+      Object relative = map.get("relative");
+      fromMapResult.relative = (Boolean)relative;
+      Object interval = map.get("interval");
+      fromMapResult.interval = (Double)interval;
+      return fromMapResult;
+    }
+  }
+
+  /** Generated class from Pigeon that represents data sent in messages. */
+  public static class IsPlayingMessage {
+    private Long isPlaying;
+    public Long getIsPlaying() { return isPlaying; }
+    public void setIsPlaying(Long setterArg) { this.isPlaying = setterArg; }
+
+    HashMap toMap() {
+      HashMap<String, Object> toMapResult = new HashMap<>();
+      toMapResult.put("isPlaying", isPlaying);
+      return toMapResult;
+    }
+    static IsPlayingMessage fromMap(HashMap map) {
+      IsPlayingMessage fromMapResult = new IsPlayingMessage();
+      Object isPlaying = map.get("isPlaying");
+      fromMapResult.isPlaying = (isPlaying == null) ? null : ((isPlaying instanceof Integer) ? (Integer)isPlaying : (Long)isPlaying);
+      return fromMapResult;
+    }
+  }
+
+  /** Generated class from Pigeon that represents data sent in messages. */
+  public static class PositionMessage {
+    private Double position;
+    public Double getPosition() { return position; }
+    public void setPosition(Double setterArg) { this.position = setterArg; }
+
+    HashMap toMap() {
+      HashMap<String, Object> toMapResult = new HashMap<>();
+      toMapResult.put("position", position);
+      return toMapResult;
+    }
+    static PositionMessage fromMap(HashMap map) {
+      PositionMessage fromMapResult = new PositionMessage();
+      Object position = map.get("position");
+      fromMapResult.position = (Double)position;
       return fromMapResult;
     }
   }
@@ -132,6 +203,12 @@ public class Messages {
     void disconnect();
     IsConnectedMessage isConnected();
     void loadMedia(LoadMediaMessage arg);
+    void play();
+    void pause();
+    void stop();
+    void seek(SeekMessage arg);
+    IsPlayingMessage isPlaying();
+    PositionMessage getPosition();
 
     /** Sets up an instance of `VideoCastApi` to handle messages through the `binaryMessenger` */
     static void setup(BinaryMessenger binaryMessenger, VideoCastApi api) {
@@ -243,6 +320,122 @@ public class Messages {
               LoadMediaMessage input = LoadMediaMessage.fromMap((HashMap)message);
               api.loadMedia(input);
               wrapped.put("result", null);
+            }
+            catch (Exception exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.play", new StandardMessageCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            HashMap<String, HashMap> wrapped = new HashMap<>();
+            try {
+              api.play();
+              wrapped.put("result", null);
+            }
+            catch (Exception exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.pause", new StandardMessageCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            HashMap<String, HashMap> wrapped = new HashMap<>();
+            try {
+              api.pause();
+              wrapped.put("result", null);
+            }
+            catch (Exception exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.stop", new StandardMessageCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            HashMap<String, HashMap> wrapped = new HashMap<>();
+            try {
+              api.stop();
+              wrapped.put("result", null);
+            }
+            catch (Exception exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.seek", new StandardMessageCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            HashMap<String, HashMap> wrapped = new HashMap<>();
+            try {
+              @SuppressWarnings("ConstantConditions")
+              SeekMessage input = SeekMessage.fromMap((HashMap)message);
+              api.seek(input);
+              wrapped.put("result", null);
+            }
+            catch (Exception exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.isPlaying", new StandardMessageCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            HashMap<String, HashMap> wrapped = new HashMap<>();
+            try {
+              IsPlayingMessage output = api.isPlaying();
+              wrapped.put("result", output.toMap());
+            }
+            catch (Exception exception) {
+              wrapped.put("error", wrapError(exception));
+            }
+            reply.reply(wrapped);
+          });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.getPosition", new StandardMessageCodec());
+        if (api != null) {
+          channel.setMessageHandler((message, reply) -> {
+            HashMap<String, HashMap> wrapped = new HashMap<>();
+            try {
+              PositionMessage output = api.getPosition();
+              wrapped.put("result", output.toMap());
             }
             catch (Exception exception) {
               wrapped.put("error", wrapError(exception));

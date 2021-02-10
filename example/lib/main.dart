@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_video_cast/flutter_video_cast.dart';
 
@@ -24,19 +26,26 @@ class _CastSampleState extends State<CastSample> {
   AppState _state = AppState.idle;
   bool _playing = false;
 
+  StreamSubscription _onSessionStartedSubscription;
+  StreamSubscription _onSessionEndedSubscription;
+
   @override
   void initState() {
     super.initState();
 
     _controller = ChromeCastController.init();
-    _controller.onSessionStarted().listen((event) {
-      return _onSessionStarted;
-    });
-    _controller
+    _onSessionStartedSubscription =
+        _controller.onSessionStarted().listen((event) => _onSessionStarted());
+    _onSessionEndedSubscription = _controller
         .onSessionEnded()
-        .listen((event) {
-          setState(() => _state = AppState.idle);
-        });
+        .listen((event) => setState(() => _state = AppState.idle));
+  }
+
+  @override
+  void dispose() {
+    _onSessionStartedSubscription?.cancel();
+    _onSessionEndedSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -58,7 +67,7 @@ class _CastSampleState extends State<CastSample> {
             controller: _controller,
             size: CastSample._iconSize * 0.6,
             color: Colors.white,
-            connectColor: Colors.amber,
+            connectingColor: Colors.amber,
           ),
           SizedBox(width: 50)
         ],
@@ -113,13 +122,19 @@ class _CastSampleState extends State<CastSample> {
 
   Future<void> _onSessionStarted() async {
     setState(() => _state = AppState.connected);
-    await _controller.loadMedia(
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        title: 'title',
-        description: 'description',
-        studio: 'studio',
-        thumbnailUrl:
-            'https://miro.medium.com/max/9216/1*BMMyf99KlbX0ZPhbuqPlIQ.jpeg');
+    _controller
+        .loadMedia(
+            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            title: 'title',
+            description: 'description',
+            studio: 'studio',
+            thumbnailUrl:
+                'https://miro.medium.com/max/9216/1*BMMyf99KlbX0ZPhbuqPlIQ.jpeg')
+        .then((value) => _onRequestCompleted())
+        .catchError((e) {
+      // fixme: wrong argument type exception
+      return _onRequestFailed(e);
+    });
   }
 
   Future<void> _onRequestCompleted() async {

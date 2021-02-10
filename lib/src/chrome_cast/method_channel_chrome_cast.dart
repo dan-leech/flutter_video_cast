@@ -1,28 +1,48 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:enum_to_string/enum_to_string.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_video_cast/flutter_video_cast.dart';
 import 'package:flutter_video_cast/messages.dart';
 import 'package:flutter_video_cast/src/chrome_cast/chrome_cast_event.dart';
 import 'package:flutter_video_cast/src/chrome_cast/chrome_cast_platform.dart';
 import 'package:stream_transform/stream_transform.dart';
 
+import 'models/device_entity.dart';
+
 /// An implementation of [ChromeCastPlatform] that uses [MethodChannel] to communicate with the native code.
 class MethodChannelChromeCast extends ChromeCastPlatform {
   final VideoCastApi _api = VideoCastApi();
-  final _eventChannel = EventChannel('flutter_video_cast/chromeCastEvent');
 
   // The stream to broadcast the different events coming
   // from native api.
+  // It's important to call receiveBroadcastStream once.
+  final _eventStream = EventChannel('flutter_video_cast/chromeCastEvent')
+      .receiveBroadcastStream();
+
+  List<DeviceEntity> _devices;
+  SessionEvent _sessionEvent;
+
   @override
-  Stream<ChromeCastEvent> get events => _eventChannel
-      // fixme: fix broadcasting
-      .receiveBroadcastStream()
-      .map((event) => _handleEvent(event));
+  List<DeviceEntity> get devices => _devices;
+
+  @override
+  Stream<ChromeCastEvent> get events =>
+      _eventStream.map((event) => _handleEvent(event));
+
+  @override
+  SessionEvent get sessionEvent => _sessionEvent;
 
   @override
   Future<void> init() {
+    onDidUpdateDeviceList().listen((event) => _devices = event.devices);
+    onSessionEvent().listen((event) {
+      if (event is SessionAlreadyConnectedEvent) return;
+      _sessionEvent = event;
+    });
     return _api.initialize();
   }
 
@@ -48,6 +68,11 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   }
 
   @override
+  Stream<SessionEvent> onSessionEvent() {
+    return events.whereType<SessionEvent>();
+  }
+
+  @override
   Stream<SessionStartedEvent> onSessionStarted() {
     return events.whereType<SessionStartedEvent>();
   }
@@ -63,6 +88,11 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   }
 
   @override
+  Stream<RequestEvent> onRequestEvent() {
+    return events.whereType<RequestEvent>();
+  }
+
+  @override
   Stream<RequestDidCompleteEvent> onRequestCompleted() {
     return events.whereType<RequestDidCompleteEvent>();
   }
@@ -73,73 +103,64 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   }
 
   @override
+  Stream<DidUpdateDeviceListEvent> onDidUpdateDeviceList() {
+    return events.whereType<DidUpdateDeviceListEvent>();
+  }
+
+  @override
+  Stream<DidUpdatePlaybackEvent> onDidUpdatePlayback() {
+    return events.whereType<DidUpdatePlaybackEvent>();
+  }
+
+  @override
   Future<void> loadMedia(String url,
-      {String title, description, studio, thumbnailUrl, int position}) async {
-    return _api.loadMedia(LoadMediaMessage()
-      ..url = url
-      ..title = title
-      ..description = description
-      ..studio = studio
-      ..thumbnailUrl = thumbnailUrl
-      ..position = position);
-  }
+          {String title,
+          description,
+          studio,
+          thumbnailUrl,
+          int position,
+          bool autoPlay = true}) =>
+      _requestFnWrapper(_api.loadMedia(LoadMediaMessage()
+        ..url = url
+        ..title = title
+        ..descr = description
+        ..studio = studio
+        ..thumbnailUrl = thumbnailUrl
+        ..position = position
+        ..autoPlay = autoPlay));
 
   @override
-  Future<void> play() async {
-    // return channel(id).invokeMethod<void>('chromeCast#play');
-  }
+  Future<void> play() => _requestFnWrapper(_api.play());
 
   @override
-  Future<void> pause() async {
-    // return channel(id).invokeMethod<void>('chromeCast#pause');
-  }
+  Future<void> pause() => _requestFnWrapper(_api.pause());
 
   @override
-  Future<void> seek(bool relative, double interval) async {
-    // final Map<String, dynamic> args = {
-    //   'relative': relative,
-    //   'interval': interval
-    // };
-    // return channel(id).invokeMethod<void>('chromeCast#seek', args);
-  }
+  Future<void> stop() => _requestFnWrapper(_api.stop());
 
   @override
-  Future<void> stop() async {
-    // return channel(id).invokeMethod<void>('chromeCast#stop');
-  }
+  Future<void> seek(bool relative, double interval) =>
+      _requestFnWrapper(_api.seek(SeekMessage()
+        ..relative = relative
+        ..interval = interval));
 
   @override
   Future<bool> isPlaying() async {
-    // return channel(id).invokeMethod<bool>('chromeCast#isPlaying');
-    return false;
+    final msg = await _api.isPlaying();
+    return msg.isPlaying == 1;
   }
 
-  // Future<dynamic> _handleMethodCall(MethodCall call, int id) async {
-  //   switch (call.method) {
-  //     case 'chromeCast#didStartSession':
-  //       _eventStreamController.add(SessionStartedEvent(id));
-  //       break;
-  //     case 'chromeCast#didEndSession':
-  //       _eventStreamController.add(SessionEndedEvent(id));
-  //       break;
-  //     case 'chromeCast#requestDidComplete':
-  //       _eventStreamController.add(RequestDidCompleteEvent(id));
-  //       break;
-  //     case 'chromeCast#requestDidFail':
-  //       _eventStreamController
-  //           .add(RequestDidFailEvent(id, call.arguments['error']));
-  //       break;
-  //     default:
-  //       throw MissingPluginException();
-  //   }
-  // }
+  @override
+  Future<double> getPosition() async {
+    final msg = await _api.getPosition();
+    return msg.position ?? 0.0;
+  }
 
   ChromeCastEvent _handleEvent(Map<dynamic, dynamic> event) {
     final eventName = event['event'].toString();
     switch (eventName) {
       case 'didStartSession':
       case 'resumedSession':
-      case 'alreadyConnectedSession':
         return SessionStartedEvent();
       case 'didEndSession':
       case 'failedToStartSession':
@@ -150,8 +171,62 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
         return RequestDidCompleteEvent();
       case 'requestDidFail':
         return RequestDidFailEvent(event['error']);
+      case 'alreadyConnectedSession':
+        return SessionAlreadyConnectedEvent();
+      case 'didUpdateDeviceList':
+        final devices = <DeviceEntity>[];
+
+        final data = List.from(jsonDecode(event['data'].toString()));
+        data.forEach((element) {
+          devices.add(DeviceEntity.fromJson(element));
+        });
+
+        return DidUpdateDeviceListEvent(devices);
+      case 'didUpdatePlayback':
+        // print('didUpdatePlayback: $event');
+        final state =
+            EnumToString.fromString(PlaybackState.values, event['state']);
+        double duration;
+        final position = event['position'];
+
+        if (state != null &&
+            state != PlaybackState.loading &&
+            state != PlaybackState.idle &&
+            state != PlaybackState.unknown &&
+            event['duration'] > 0.0) {
+          duration = event['duration'];
+        }
+
+        return DidUpdatePlaybackEvent(
+            duration: duration != null
+                ? Duration(microseconds: (duration * 1000000).round())
+                : null,
+            position: position != null
+                ? Duration(microseconds: (position * 1000000).round())
+                : null,
+            state: state,
+            idleReason: EnumToString.fromString(
+                PlaybackIdleReason.values, event['idleReason']));
       default:
         throw MissingPluginException();
     }
+  }
+
+  Future<void> _requestFnWrapper(Future<void> request) async {
+    final completer = Completer();
+    StreamSubscription subscription;
+    subscription = onRequestEvent().listen((event) {
+      if (event is RequestDidCompleteEvent) {
+        completer.complete();
+      } else if (event is RequestDidFailEvent) {
+        completer.completeError(RequestFailedException(event.error));
+      }
+
+      subscription?.cancel();
+    });
+
+    await request;
+
+    return completer.future;
   }
 }

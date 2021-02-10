@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_video_cast/messages.dart';
 import 'package:flutter_video_cast/src/chrome_cast/chrome_cast_event.dart';
 import 'package:flutter_video_cast/src/chrome_cast/method_channel_chrome_cast.dart';
+import 'package:flutter_video_cast/src/chrome_cast/models/device_entity.dart';
 
 /// The interface that platform-specific implementations of `flutter_video_cast` must extend.
 abstract class ChromeCastPlatform {
   static final ChromeCastPlatform _instance = MethodChannelChromeCast();
 
   Stream<ChromeCastEvent> get events;
+
+  List<DeviceEntity> get devices;
+
+  SessionEvent get sessionEvent;
 
   /// The default instance of [ChromeCastPlatform] to use.
   ///
@@ -43,6 +50,11 @@ abstract class ChromeCastPlatform {
     throw UnimplementedError('isConnected() has not been implemented.');
   }
 
+  /// All session events.
+  Stream<SessionEvent> onSessionEvent() {
+    throw UnimplementedError('onSessionEvent() has not been implemented.');
+  }
+
   /// A session is started.
   Stream<SessionStartedEvent> onSessionStarted() {
     throw UnimplementedError('onSessionStarted() has not been implemented.');
@@ -58,6 +70,11 @@ abstract class ChromeCastPlatform {
     throw UnimplementedError('onSessionConnecting() has not been implemented.');
   }
 
+  /// A request has occurred.
+  Stream<RequestEvent> onRequestEvent() {
+    throw UnimplementedError('onRequestEvent() has not been implemented.');
+  }
+
   /// A request has completed.
   Stream<RequestDidCompleteEvent> onRequestCompleted() {
     throw UnimplementedError('onRequestCompleted() has not been implemented.');
@@ -68,9 +85,25 @@ abstract class ChromeCastPlatform {
     throw UnimplementedError('onSessionEnded() has not been implemented.');
   }
 
+  /// Devices list changed
+  Stream<DidUpdateDeviceListEvent> onDidUpdateDeviceList() {
+    throw UnimplementedError(
+        'onDidUpdateDeviceList() has not been implemented.');
+  }
+
+  /// Playback update
+  Stream<DidUpdatePlaybackEvent> onDidUpdatePlayback() {
+    throw UnimplementedError('onDidUpdatePlayback() has not been implemented.');
+  }
+
   /// Load a new media by providing an [url].
   Future<void> loadMedia(String url,
-      {String title, description, studio, thumbnailUrl, int position}) {
+      {String title,
+      description,
+      studio,
+      thumbnailUrl,
+      int position,
+      bool autoPlay}) {
     throw UnimplementedError('loadMedia() has not been implemented.');
   }
 
@@ -99,5 +132,10 @@ abstract class ChromeCastPlatform {
   /// Returns `true` when a cast session is playing, `false` otherwise.
   Future<bool> isPlaying() {
     throw UnimplementedError('isPlaying() has not been implemented.');
+  }
+
+  /// Returns current playback position
+  Future<double> getPosition() {
+    throw UnimplementedError('getPosition() has not been implemented.');
   }
 }
