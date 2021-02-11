@@ -102,7 +102,7 @@ class GoogleCastManager: NSObject {
         
         let criteria = GCKDiscoveryCriteria(applicationID: kReceiverAppID)
         let options = GCKCastOptions(discoveryCriteria: criteria)
-//        options.suspendSessionsWhenBackgrounded = false
+        options.suspendSessionsWhenBackgrounded = false
         options.physicalVolumeButtonsWillControlDeviceVolume = true
         GCKCastContext.setSharedInstanceWith(options)
         GCKCastContext.sharedInstance().useDefaultExpandedMediaControls = true

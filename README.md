@@ -38,6 +38,7 @@ import GoogleCast
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         GeneratedPluginRegistrant.register(with: self)
+        // this does not work
         let criteria = GCKDiscoveryCriteria(applicationID: kReceiverAppID)
         let options = GCKCastOptions(discoveryCriteria: criteria)
         GCKCastContext.setSharedInstanceWith(options)
@@ -51,7 +52,7 @@ import GoogleCast
 Opt-in to the embedded views preview by adding a boolean property to the app's `Info.plist` file
 with the key `io.flutter.embedded_views_preview` and the value `YES`.
 
-info.plist:
+iOS 14 info.plist:
 ```
 <key>NSBonjourServices</key>
 <array>
