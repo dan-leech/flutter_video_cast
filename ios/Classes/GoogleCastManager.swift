@@ -418,6 +418,7 @@ extension GoogleCastManager: GCKSessionManagerListener {
     public func sessionManager(_ sessionManager: GCKSessionManager, didResumeSession session: GCKSession) {
         print("sessionManager resumed")
         sessionStatus = .resumed
+        addRemoteMediaListerner()
     }
     
     public func sessionManager(_ sessionManager: GCKSessionManager, didEnd session: GCKSession, withError error: Error?) {

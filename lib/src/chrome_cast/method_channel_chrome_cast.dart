@@ -183,7 +183,6 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
 
         return DidUpdateDeviceListEvent(devices);
       case 'didUpdatePlayback':
-        // print('didUpdatePlayback: $event');
         final state =
             EnumToString.fromString(PlaybackState.values, event['state']);
         double duration;
