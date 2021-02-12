@@ -25,6 +25,7 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
 
   List<DeviceEntity> _devices;
   SessionEvent _sessionEvent;
+  DidUpdateDeviceListEvent _deviceListEvent;
 
   @override
   List<DeviceEntity> get devices => _devices;
@@ -37,18 +38,36 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   SessionEvent get sessionEvent => _sessionEvent;
 
   @override
+  DidUpdateDeviceListEvent get deviceListEvent => _deviceListEvent;
+
+  @override
   Future<void> init() {
-    onDidUpdateDeviceList().listen((event) => _devices = event.devices);
+    onDidUpdateDeviceList().listen((event) {
+      _deviceListEvent = event;
+      _devices = event.devices;
+    });
+
     onSessionEvent().listen((event) {
       if (event is SessionAlreadyConnectedEvent) return;
       _sessionEvent = event;
     });
+
     return _api.initialize();
+  }
+
+  @override
+  Future<void> startDeviceDiscovery() {
+    return _api.startDeviceDiscovery();
   }
 
   @override
   Future<DevicesMessage> discoverDevices() {
     return _api.discoverDevices();
+  }
+
+  @override
+  Future<DevicesMessage> getCurrentDevice() {
+    return _api.getCurrentDevice();
   }
 
   @override

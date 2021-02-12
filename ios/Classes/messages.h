@@ -52,7 +52,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol FLTVideoCastApi
 -(void)initialize:(FlutterError *_Nullable *_Nonnull)error;
+-(void)startDeviceDiscovery:(FlutterError *_Nullable *_Nonnull)error;
 -(nullable FLTDevicesMessage *)discoverDevices:(FlutterError *_Nullable *_Nonnull)error;
+-(nullable FLTDevicesMessage *)getCurrentDevice:(FlutterError *_Nullable *_Nonnull)error;
 -(void)connect:(FLTConnectMessage*)input error:(FlutterError *_Nullable *_Nonnull)error;
 -(void)disconnect:(FlutterError *_Nullable *_Nonnull)error;
 -(nullable FLTIsConnectedMessage *)isConnected:(FlutterError *_Nullable *_Nonnull)error;

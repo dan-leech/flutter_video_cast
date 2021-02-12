@@ -39,6 +39,10 @@ extension ChromeCastController: FLTVideoCastApi {
         castManager.addGCKMediaInformationListenerlistener(listener: self)
     }
     
+    func startDeviceDiscovery(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        castManager.startDeviceDiscovery()
+    }
+    
     func discoverDevices(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTDevicesMessage? {
         let devices = castManager.getAvailableDevices()
         //        NSLog("devices: %i", devices.count)
@@ -46,6 +50,17 @@ extension ChromeCastController: FLTVideoCastApi {
         let res = FLTDevicesMessage()
         res.devicesData = convertDevicesToJson(devices: devices)
         //        NSLog("json: %@", NSString(string: json!))
+        
+        return res
+    }
+    
+    func getCurrentDevice(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> FLTDevicesMessage? {
+        let device = castManager.getCurrentDevice()
+        
+        let res = FLTDevicesMessage()
+        if device != nil {
+          res.devicesData = convertDevicesToJson(devices: [device!])
+        }
         
         return res
     }

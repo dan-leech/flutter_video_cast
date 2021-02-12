@@ -104,6 +104,8 @@ class GoogleCastManager: NSObject {
         let options = GCKCastOptions(discoveryCriteria: criteria)
         options.suspendSessionsWhenBackgrounded = false
         options.physicalVolumeButtonsWillControlDeviceVolume = true
+        // even if following is true NSLocalNetworkUsageDescription permission request appears
+//        options.disableDiscoveryAutostart = true
         GCKCastContext.setSharedInstanceWith(options)
         GCKCastContext.sharedInstance().useDefaultExpandedMediaControls = true
     }
@@ -117,7 +119,6 @@ class GoogleCastManager: NSObject {
         discoveryManager = GCKCastContext.sharedInstance().discoveryManager
         discoveryManager.add(self)
         discoveryManager.passiveScan = true
-        discoveryManager.startDiscovery()
     }
     
     private func setupCastLogging() {
@@ -140,6 +141,13 @@ class GoogleCastManager: NSObject {
             return
         }
         currSession.remoteMediaClient?.remove(self)
+    }
+    
+    func startDeviceDiscovery() {
+        if discoveryManager.discoveryActive {
+            return;
+        }
+        discoveryManager.startDiscovery()
     }
     
     func addSessionStatusListener(listener: SessionStatusListener) {
@@ -349,6 +357,14 @@ class GoogleCastManager: NSObject {
         
         return GCKMediaPlayerIdleReason.none
     }
+    
+    func getCurrentDevice() -> GCKDevice? {
+        if let castSession = sessionManager.currentCastSession {
+            return castSession.device
+        }
+        
+        return nil;
+    }
 }
 
 // MARK: - GCKDiscoveryManagerListener
@@ -411,6 +427,7 @@ extension GoogleCastManager: GCKRequestDelegate {
 extension GoogleCastManager: GCKSessionManagerListener {
     public func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
         print("sessionManager started")
+        
         sessionStatus = .started
         addRemoteMediaListerner()
     }

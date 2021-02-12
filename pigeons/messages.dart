@@ -42,7 +42,11 @@ class PositionMessage {
 abstract class VideoCastApi {
   void initialize();
 
+  void startDeviceDiscovery();
+
   DevicesMessage discoverDevices();
+
+  DevicesMessage getCurrentDevice();
 
   void connect(ConnectMessage msg);
 

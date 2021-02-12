@@ -12,10 +12,18 @@ class ChromeCastController {
 
   SessionEvent get sessionEvent => _chromeCastPlatform.sessionEvent;
 
+  DidUpdateDeviceListEvent get deviceListEvent =>
+      _chromeCastPlatform.deviceListEvent;
+
   /// Initialize control of a [ChromeCastButton].
   static ChromeCastController init() {
     _chromeCastPlatform.init();
     return ChromeCastController._();
+  }
+
+  /// This method is necessary for discoverDevices and getting devices list
+  Future<void> startDeviceDiscovery() {
+    return _chromeCastPlatform.startDeviceDiscovery();
   }
 
   /// Load a new media by providing an [url].
@@ -77,6 +85,16 @@ class ChromeCastController {
     });
 
     return result;
+  }
+
+  /// Get current connected device or null
+  Future<DeviceEntity> getCurrentDevice() async {
+    final res = await _chromeCastPlatform.getCurrentDevice();
+
+    if (res.devicesData?.isEmpty ?? true) return null;
+
+    final data = List.from(jsonDecode(res.devicesData));
+    return DeviceEntity.fromJson(data.first);
   }
 
   /// connect to device with id

@@ -16,6 +16,8 @@ abstract class ChromeCastPlatform {
 
   SessionEvent get sessionEvent;
 
+  DidUpdateDeviceListEvent get deviceListEvent;
+
   /// The default instance of [ChromeCastPlatform] to use.
   ///
   /// Defaults to [MethodChannelChromeCast].
@@ -28,11 +30,22 @@ abstract class ChromeCastPlatform {
     throw UnimplementedError('init() has not been implemented.');
   }
 
-  /// Starts devices discovery.
+  /// Starts device discovery
   ///
-  /// Searches devices in the network
+  /// This method is necessary for discoverDevices and getting devices list
+  Future<void> startDeviceDiscovery() {
+    throw UnimplementedError(
+        'startDeviceDiscovery() has not been implemented.');
+  }
+
+  /// Get available discovered devices
   Future<DevicesMessage> discoverDevices() {
     throw UnimplementedError('discoverDevices() has not been implemented.');
+  }
+
+  /// Get current connected device
+  Future<DevicesMessage> getCurrentDevice() {
+    throw UnimplementedError('getCurrentDevice() has not been implemented.');
   }
 
   /// Connects to device
