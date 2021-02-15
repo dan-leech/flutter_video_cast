@@ -21,12 +21,18 @@ class SessionConnectingEvent extends SessionEvent {}
 /// An event fired when a session is already connected.
 class SessionAlreadyConnectedEvent extends SessionEvent {}
 
+/// An event fired on a device discovery
+class DeviceDiscoveryEvent extends ChromeCastEvent {}
+
 /// An event fired when a new device detected or an old one detached.
-class DidUpdateDeviceListEvent extends ChromeCastEvent {
+class DidUpdateDeviceListEvent extends DeviceDiscoveryEvent {
   final List<DeviceEntity> devices;
 
   DidUpdateDeviceListEvent(this.devices);
 }
+
+/// An event fired when local network permission is not granted
+class LocalNetworkDeniedEvent extends DeviceDiscoveryEvent {}
 
 /// An event fired on a request.
 class RequestEvent extends ChromeCastEvent {}

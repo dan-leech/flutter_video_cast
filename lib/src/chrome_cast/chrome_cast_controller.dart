@@ -12,8 +12,8 @@ class ChromeCastController {
 
   SessionEvent get sessionEvent => _chromeCastPlatform.sessionEvent;
 
-  DidUpdateDeviceListEvent get deviceListEvent =>
-      _chromeCastPlatform.deviceListEvent;
+  DeviceDiscoveryEvent get deviceDiscoveryEvent =>
+      _chromeCastPlatform.deviceDiscoveryEvent;
 
   /// Initialize control of a [ChromeCastButton].
   static ChromeCastController init() {
@@ -130,6 +130,9 @@ class ChromeCastController {
 
   Stream<RequestDidFailEvent> onRequestFailed() =>
       _chromeCastPlatform.onRequestFailed();
+
+  Stream<DeviceDiscoveryEvent> onDeviceDiscovery() =>
+      _chromeCastPlatform.onDeviceDiscovery();
 
   Stream<DidUpdateDeviceListEvent> onDidUpdateDeviceList() =>
       _chromeCastPlatform.onDidUpdateDeviceList();

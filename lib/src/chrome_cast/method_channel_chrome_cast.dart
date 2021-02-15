@@ -25,7 +25,7 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
 
   List<DeviceEntity> _devices;
   SessionEvent _sessionEvent;
-  DidUpdateDeviceListEvent _deviceListEvent;
+  DeviceDiscoveryEvent _deviceDiscoveryEvent;
 
   @override
   List<DeviceEntity> get devices => _devices;
@@ -38,13 +38,15 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   SessionEvent get sessionEvent => _sessionEvent;
 
   @override
-  DidUpdateDeviceListEvent get deviceListEvent => _deviceListEvent;
+  DeviceDiscoveryEvent get deviceDiscoveryEvent => _deviceDiscoveryEvent;
 
   @override
   Future<void> init() {
-    onDidUpdateDeviceList().listen((event) {
-      _deviceListEvent = event;
-      _devices = event.devices;
+    onDeviceDiscovery().listen((event) {
+      _deviceDiscoveryEvent = event;
+      if (event is DidUpdateDeviceListEvent) {
+        _devices = event.devices;
+      }
     });
 
     onSessionEvent().listen((event) {
@@ -119,6 +121,11 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   @override
   Stream<RequestDidFailEvent> onRequestFailed() {
     return events.whereType<RequestDidFailEvent>();
+  }
+
+  @override
+  Stream<DeviceDiscoveryEvent> onDeviceDiscovery() {
+    return events.whereType<DeviceDiscoveryEvent>();
   }
 
   @override
@@ -201,6 +208,9 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
         });
 
         return DidUpdateDeviceListEvent(devices);
+      case 'discoveryDidFail':
+        event['error'] = 'local network denied';
+        return LocalNetworkDeniedEvent();
       case 'didUpdatePlayback':
         final state =
             EnumToString.fromString(PlaybackState.values, event['state']);

@@ -16,7 +16,7 @@ abstract class ChromeCastPlatform {
 
   SessionEvent get sessionEvent;
 
-  DidUpdateDeviceListEvent get deviceListEvent;
+  DeviceDiscoveryEvent get deviceDiscoveryEvent;
 
   /// The default instance of [ChromeCastPlatform] to use.
   ///
@@ -96,6 +96,11 @@ abstract class ChromeCastPlatform {
   /// A request has failed.
   Stream<RequestDidFailEvent> onRequestFailed() {
     throw UnimplementedError('onSessionEnded() has not been implemented.');
+  }
+
+  /// Device Discovery
+  Stream<DeviceDiscoveryEvent> onDeviceDiscovery() {
+    throw UnimplementedError('onDeviceDiscovery() has not been implemented.');
   }
 
   /// Devices list changed

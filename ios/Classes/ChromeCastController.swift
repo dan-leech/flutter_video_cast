@@ -40,6 +40,25 @@ extension ChromeCastController: FLTVideoCastApi {
     }
     
     func startDeviceDiscovery(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+        if #available(iOS 14.2, *) {
+            getLocalNetworkAccessPermission { granted in
+                print(granted ? "granted" : "denied")
+                if granted {
+                    let devices = self.castManager.getAvailableDevices()
+                    
+                    self.eventSink?([
+                        "event": "didUpdateDeviceList",
+                        "data": self.convertDevicesToJson(devices: devices)
+                    ])
+                } else {
+                    self.eventSink?([
+                        "event": "discoveryDidFail",
+                        "error": "local network denied"
+                    ])
+                }
+            }
+        }
+        
         castManager.startDeviceDiscovery()
     }
     
