@@ -30,6 +30,11 @@ abstract class ChromeCastPlatform {
     throw UnimplementedError('init() has not been implemented.');
   }
 
+  /// Open native Google cast popup
+  Future<void> androidOpenMediaRouter() {
+    throw UnimplementedError('androidOpenMediaRouter() has not been implemented.');
+  }
+
   /// Starts device discovery
   ///
   /// This method is necessary for discoverDevices and getting devices list

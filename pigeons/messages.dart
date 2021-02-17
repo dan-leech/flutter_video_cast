@@ -67,6 +67,8 @@ abstract class VideoCastApi {
   IsPlayingMessage isPlaying();
 
   PositionMessage getPosition();
+
+  void androidOpenMediaRouter();
 }
 
 void configurePigeon(PigeonOptions opts) {

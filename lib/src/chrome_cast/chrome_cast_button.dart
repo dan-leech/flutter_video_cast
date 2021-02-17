@@ -40,6 +40,10 @@ class ChromeCastButton extends StatelessWidget {
             snapshot.data is SessionEndedEvent) {
           return GestureDetector(
               onTap: () async {
+                if (Platform.isAndroid) {
+                  await controller.androidOpenMediaRouter();
+                  return;
+                }
                 final devices = controller.devices;
 
                 await showModalBottomSheet(
