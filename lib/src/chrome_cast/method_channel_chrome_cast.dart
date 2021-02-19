@@ -58,11 +58,6 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
   }
 
   @override
-  Future<void> androidOpenMediaRouter() {
-    return _api.androidOpenMediaRouter();
-  }
-
-  @override
   Future<void> startDeviceDiscovery() {
     return _api.startDeviceDiscovery();
   }

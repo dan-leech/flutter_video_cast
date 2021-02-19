@@ -7,8 +7,19 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 /** FlutterVideoCastPlugin */
 class FlutterVideoCastPlugin : FlutterPlugin, ActivityAware {
     private var videoCastCallHandler: FlutterVideoCastCallHandler? = null
+    private lateinit var chromeCastFactory: ChromeCastFactory
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        // register button factory
+        chromeCastFactory = ChromeCastFactory()
+        binding
+                .platformViewRegistry
+                .registerViewFactory(
+                        "ChromeCastButton",
+                        chromeCastFactory
+                )
+
+        // video cast handler
         if (videoCastCallHandler == null) {
             videoCastCallHandler = FlutterVideoCastCallHandler(context = binding.applicationContext)
         }
@@ -22,7 +33,7 @@ class FlutterVideoCastPlugin : FlutterPlugin, ActivityAware {
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        videoCastCallHandler?.attachActivity(binding.activity)
+        chromeCastFactory.activity = binding.activity
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -34,6 +45,5 @@ class FlutterVideoCastPlugin : FlutterPlugin, ActivityAware {
     }
 
     override fun onDetachedFromActivity() {
-        videoCastCallHandler?.detachActivity()
     }
 }

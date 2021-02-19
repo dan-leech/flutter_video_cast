@@ -211,7 +211,6 @@ public class Messages {
     void seek(SeekMessage arg);
     IsPlayingMessage isPlaying();
     PositionMessage getPosition();
-    void androidOpenMediaRouter();
 
     /** Sets up an instance of `VideoCastApi` to handle messages through the `binaryMessenger` */
     static void setup(BinaryMessenger binaryMessenger, VideoCastApi api) {
@@ -477,25 +476,6 @@ public class Messages {
             try {
               PositionMessage output = api.getPosition();
               wrapped.put("result", output.toMap());
-            }
-            catch (Exception exception) {
-              wrapped.put("error", wrapError(exception));
-            }
-            reply.reply(wrapped);
-          });
-        } else {
-          channel.setMessageHandler(null);
-        }
-      }
-      {
-        BasicMessageChannel<Object> channel =
-            new BasicMessageChannel<>(binaryMessenger, "dev.flutter.pigeon.VideoCastApi.androidOpenMediaRouter", new StandardMessageCodec());
-        if (api != null) {
-          channel.setMessageHandler((message, reply) -> {
-            HashMap<String, HashMap> wrapped = new HashMap<>();
-            try {
-              api.androidOpenMediaRouter();
-              wrapped.put("result", null);
             }
             catch (Exception exception) {
               wrapped.put("error", wrapError(exception));

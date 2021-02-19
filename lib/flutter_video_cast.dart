@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_video_cast/src/air_play/air_play_platform.dart';
 import 'package:flutter_video_cast/src/chrome_cast/chrome_cast_event.dart';

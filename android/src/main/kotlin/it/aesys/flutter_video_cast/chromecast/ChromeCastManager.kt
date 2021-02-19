@@ -23,19 +23,14 @@ import com.google.android.gms.common.api.Status
 import it.aesys.flutter_video_cast.R
 
 
-class ChromeCastManager(private val context: Context, private val activity: Activity) {
+class ChromeCastManager(private val context: Context) {
     companion object {
         const val TAG = "ChromeCastManager"
-        private const val CHOOSER_FRAGMENT_TAG = "android.support.v7.mediarouter:MediaRouteChooserDialogFragment"
-        private const val CONTROLLER_FRAGMENT_TAG = "android.support.v7.mediarouter:MediaRouteControllerDialogFragment"
     }
 
     private var sessionManager: SessionManager? = null
     private var sessionStatusListener: SessionStatusListener? = null
     private val castSessionManagerListener = CastSessionManagerListener()
-    private lateinit var mSelector: MediaRouteSelector
-    private lateinit var mRouter: MediaRouter
-    private lateinit var mDialogFactory: MediaRouteDialogFactory
 
     fun initialise() {
         initialiseContext()
@@ -63,76 +58,6 @@ class ChromeCastManager(private val context: Context, private val activity: Acti
         sessionStatusListener = listener
     }
 
-    private fun getFragmentManager(): FragmentManager? {
-        return if (activity is FragmentActivity) {
-            (activity as FragmentActivity?)!!.supportFragmentManager
-        } else null
-    }
-
-    fun openCastDialog() {
-        mSelector = MediaRouteSelector.Builder()
-                // These are the framework-supported intents
-                .addControlCategory("com.google.android.gms.cast.CATEGORY_CAST/CC1AD845///ALLOW_IPV6")
-                .addControlCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK)
-                .build()
-
-        mRouter = MediaRouter.getInstance(activity)
-        mDialogFactory = MediaRouteDialogFactory.getDefault()
-
-        val chromeCastButton = MediaRouteButton(ContextThemeWrapper(activity, R.style.Theme_AppCompat_NoActionBar))
-        CastButtonFactory.setUpMediaRouteButton(activity, chromeCastButton)
-//
-//        val vParams: ViewGroup.LayoutParams = ViewGroup.LayoutParams(
-//                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
-//        )
-//        val id = 0x123456
-//        val container = FrameLayout(context)
-//        container.layoutParams = vParams
-//        container.id = id
-//
-//        activity.addContentView(chromeCastButton, vParams)
-//
-//
-//
-//        val nativeFragment = Fragment()
-//        nativeFragment.activity?.addContentView(MediaRouteButton(ContextThemeWrapper(context, R.style.Theme_AppCompat_NoActionBar)), vParams)
-//
-        val fm: FragmentManager = getFragmentManager()
-                ?: throw IllegalStateException("The activity must be a subclass of FragmentActivity")
-//
-//        fm.beginTransaction()
-//                .replace(id, nativeFragment)
-//                .commitAllowingStateLoss()
-//
-//        val handler = Handler()
-//        handler.postDelayed({
-//            chromeCastButton.performClick()
-//        }, 5000)
-
-        val route: MediaRouter.RouteInfo = mRouter.selectedRoute
-        if (route.isDefault || !route.matchesSelector(mSelector)) {
-            if (fm.findFragmentByTag(CHOOSER_FRAGMENT_TAG) != null) {
-                Log.w(TAG, "showDialog(): Route chooser dialog already showing!")
-                return
-            }
-            val f: MediaRouteChooserDialogFragment = mDialogFactory.onCreateChooserDialogFragment()
-            f.routeSelector = mSelector
-            f.show(fm, CHOOSER_FRAGMENT_TAG)
-        } else {
-            if (fm.findFragmentByTag(CONTROLLER_FRAGMENT_TAG) != null) {
-                Log.w(TAG, "showDialog(): Route controller dialog already showing!")
-                return
-            }
-            val f: MediaRouteControllerDialogFragment = mDialogFactory.onCreateControllerDialogFragment()
-            f.show(fm, CONTROLLER_FRAGMENT_TAG)
-        }
-
-        if (sessionManager == null) {
-            sessionManager = CastContext.getSharedInstance()?.sessionManager
-        }
-        sessionManager?.addSessionManagerListener(castSessionManagerListener)
-    }
-
 
     /*
      * Inner Classes
@@ -148,10 +73,6 @@ class ChromeCastManager(private val context: Context, private val activity: Acti
 
     interface SessionStatusListener {
         fun onChange(status: CastSessionStatus)
-    }
-
-    inner class frg: Fragment() {
-
     }
 
     /**

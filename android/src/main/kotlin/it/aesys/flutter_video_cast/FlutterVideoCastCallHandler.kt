@@ -37,14 +37,6 @@ class FlutterVideoCastCallHandler(private val context: Context) : Messages.Video
         })
     }
 
-    fun attachActivity(activity: Activity) {
-        castManager = ChromeCastManager(context, activity)
-    }
-
-    fun detachActivity() {
-        castManager = null
-    }
-
     /**
      * Clears this instance from listening to method calls.
      *
@@ -57,11 +49,10 @@ class FlutterVideoCastCallHandler(private val context: Context) : Messages.Video
     }
 
     override fun initialize() {
+        if(castManager == null) {
+            castManager = ChromeCastManager(context)
+        }
         castManager?.initialise()
-    }
-
-    override fun androidOpenMediaRouter() {
-        castManager?.openCastDialog()
     }
 
     override fun startDeviceDiscovery() {

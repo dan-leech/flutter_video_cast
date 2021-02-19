@@ -31,7 +31,9 @@ class ChromeCastButton extends StatelessWidget {
   final ChromeCastController controller;
 
   @override
-  Widget build(BuildContext context) => StreamBuilder(
+  Widget build(BuildContext context) => Platform.isIOS ? _buildiOSButton(context) : _buildAndroidButton(context);
+
+  Widget _buildiOSButton(BuildContext context) => StreamBuilder(
       initialData: controller.sessionEvent,
       stream: controller.onSessionEvent(),
       builder: (context, snapshot) {
@@ -40,10 +42,6 @@ class ChromeCastButton extends StatelessWidget {
             snapshot.data is SessionEndedEvent) {
           return GestureDetector(
               onTap: () async {
-                if (Platform.isAndroid) {
-                  await controller.androidOpenMediaRouter();
-                  return;
-                }
                 final devices = controller.devices;
 
                 await showModalBottomSheet(
@@ -58,20 +56,20 @@ class ChromeCastButton extends StatelessWidget {
                           itemCount: devices?.length ?? 1,
                           itemBuilder: (context, index) => devices != null
                               ? InkWell(
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    controller.connect(
-                                        deviceId: devices[index].id);
-                                  },
-                                  child: Container(
-                                      decoration: BoxDecoration(
-                                          border: Border(
-                                              bottom: BorderSide(
-                                                  color: Colors.grey.shade300,
-                                                  width: 0.16))),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 16),
-                                      child: Text(devices[index].name)))
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                controller.connect(
+                                    deviceId: devices[index].id);
+                              },
+                              child: Container(
+                                  decoration: BoxDecoration(
+                                      border: Border(
+                                          bottom: BorderSide(
+                                              color: Colors.grey.shade300,
+                                              width: 0.16))),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 16),
+                                  child: Text(devices[index].name)))
                               : Text('Discovering devices...'))),
                 );
               },
@@ -105,4 +103,23 @@ class ChromeCastButton extends StatelessWidget {
                   color: connectingColor),
             ]));
       });
+
+  Widget _buildAndroidButton(BuildContext context) {
+    final args = <String, dynamic>{
+      'red': color.red,
+      'green': color.green,
+      'blue': color.blue,
+      'alpha': color.alpha
+    };
+    return SizedBox(
+      width: size,
+      height: size,
+      child: AndroidView(
+        viewType: 'ChromeCastButton',
+        onPlatformViewCreated: (id) => print('ChromeCastButton[$id] created'),
+        creationParams: args,
+        creationParamsCodec: const StandardMessageCodec(),
+      ),
+    );
+  }
 }

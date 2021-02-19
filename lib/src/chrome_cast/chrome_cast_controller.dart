@@ -21,11 +21,6 @@ class ChromeCastController {
     return ChromeCastController._();
   }
 
-  /// open native MediaRouterDialog (only Android)
-  Future<void> androidOpenMediaRouter() {
-    return _chromeCastPlatform.androidOpenMediaRouter();
-  }
-
   /// This method is necessary for discoverDevices and getting devices list
   Future<void> startDeviceDiscovery() {
     return _chromeCastPlatform.startDeviceDiscovery();

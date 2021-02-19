@@ -65,7 +65,6 @@ NS_ASSUME_NONNULL_BEGIN
 -(void)seek:(FLTSeekMessage*)input error:(FlutterError *_Nullable *_Nonnull)error;
 -(nullable FLTIsPlayingMessage *)isPlaying:(FlutterError *_Nullable *_Nonnull)error;
 -(nullable FLTPositionMessage *)getPosition:(FlutterError *_Nullable *_Nonnull)error;
--(void)androidOpenMediaRouter:(FlutterError *_Nullable *_Nonnull)error;
 @end
 
 extern void FLTVideoCastApiSetup(id<FlutterBinaryMessenger> binaryMessenger, id<FLTVideoCastApi> _Nullable api);
