@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:flutter/foundation.dart';
@@ -215,22 +216,25 @@ class MethodChannelChromeCast extends ChromeCastPlatform {
         final state =
             EnumToString.fromString(PlaybackState.values, event['state']);
         double duration;
-        final position = event['position'];
+        final position = event['position'].toDouble();
 
         if (state != null &&
             state != PlaybackState.loading &&
             state != PlaybackState.idle &&
             state != PlaybackState.unknown &&
+            event['duration'] != null &&
             event['duration'] > 0.0) {
-          duration = event['duration'];
+          duration = event['duration'].toDouble();
         }
+
+        final platformTimeMultiplier = Platform.isIOS ? 1000000 : 1000;
 
         return DidUpdatePlaybackEvent(
             duration: duration != null
-                ? Duration(microseconds: (duration * 1000000).round())
+                ? Duration(microseconds: (duration * platformTimeMultiplier).round())
                 : null,
             position: position != null
-                ? Duration(microseconds: (position * 1000000).round())
+                ? Duration(microseconds: (position * platformTimeMultiplier).round())
                 : null,
             state: state,
             idleReason: EnumToString.fromString(

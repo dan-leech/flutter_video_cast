@@ -112,7 +112,7 @@ class ChromeCastButton extends StatelessWidget {
       'alpha': color.alpha
     };
     return SizedBox(
-      width: size,
+      width: size * 1.5,
       height: size,
       child: AndroidView(
         viewType: 'ChromeCastButton',
