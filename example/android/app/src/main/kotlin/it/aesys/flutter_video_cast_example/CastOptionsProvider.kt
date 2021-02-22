@@ -11,6 +11,15 @@ import com.google.android.gms.cast.framework.media.*
 import com.google.android.gms.common.images.WebImage
 import java.util.*
 
+/**
+ * This is just example
+ * This doesn't work now with current dependencies
+ *
+ * use following in AndroidManifest.xml
+ *  <meta-data
+android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+android:value="com.google.android.exoplayer2.ext.cast.DefaultCastOptionsProvider" />
+ */
 class CastOptionsProvider : OptionsProvider {
     companion object {
         private const val CUSTOM_NAMESPACE = "urn:x-cast:custom_namespace"
