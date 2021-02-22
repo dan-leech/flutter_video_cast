@@ -258,17 +258,17 @@ class ChromeCastManager(private val context: Context) {
         }
 
         override fun onSessionStarted(session: Session, sessionId: String) {
-            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient ?: return
-            remoteMediaClient.unregisterCallback(mRemoteMediaClientStatusListener)
-            remoteMediaClient.registerCallback(mRemoteMediaClientStatusListener)
+            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient
+            remoteMediaClient?.unregisterCallback(mRemoteMediaClientStatusListener)
+            remoteMediaClient?.registerCallback(mRemoteMediaClientStatusListener)
 
             mSessionStatusListener?.onChange(CastSessionStatus.Started)
             Log.w(TAG, "onSessionStarted")
         }
 
         override fun onSessionStartFailed(session: Session, error: Int) {
-            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient ?: return
-            remoteMediaClient.unregisterCallback(mRemoteMediaClientStatusListener)
+            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient
+            remoteMediaClient?.unregisterCallback(mRemoteMediaClientStatusListener)
 
             mSessionStatusListener?.onChange(CastSessionStatus.FailedToStart)
             Log.w(TAG, "onSessionStartFailed")
@@ -279,9 +279,9 @@ class ChromeCastManager(private val context: Context) {
         }
 
         override fun onSessionResumed(session: Session, wasSuspended: Boolean) {
-            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient ?: return
-            remoteMediaClient.unregisterCallback(mRemoteMediaClientStatusListener)
-            remoteMediaClient.registerCallback(mRemoteMediaClientStatusListener)
+            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient
+            remoteMediaClient?.unregisterCallback(mRemoteMediaClientStatusListener)
+            remoteMediaClient?.registerCallback(mRemoteMediaClientStatusListener)
 
             mSessionStatusListener?.onChange(CastSessionStatus.Resumed)
             Log.w(TAG, "onSessionResumed")
@@ -297,8 +297,8 @@ class ChromeCastManager(private val context: Context) {
 
         override fun onSessionEnding(session: Session) {}
         override fun onSessionEnded(session: Session, error: Int) {
-            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient ?: return
-            remoteMediaClient.unregisterCallback(mRemoteMediaClientStatusListener)
+            val remoteMediaClient = mSessionManager?.currentCastSession?.remoteMediaClient
+            remoteMediaClient?.unregisterCallback(mRemoteMediaClientStatusListener)
 
             mSessionStatusListener?.onChange(CastSessionStatus.Ended)
             Log.w(TAG, "onSessionEnded")

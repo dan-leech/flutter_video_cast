@@ -20,7 +20,7 @@ class CastOptionsProvider : OptionsProvider {
         val notificationOptions = NotificationOptions.Builder()
                 .setActions(
                         Arrays.asList(
-                                MediaIntentReceiver.ACTION_SKIP_NEXT,
+//                                MediaIntentReceiver.ACTION_SKIP_NEXT,
                                 MediaIntentReceiver.ACTION_TOGGLE_PLAYBACK,
                                 MediaIntentReceiver.ACTION_STOP_CASTING
                         ), intArrayOf(1, 2)
@@ -37,13 +37,9 @@ class CastOptionsProvider : OptionsProvider {
         val launchOptions = LaunchOptions.Builder()
                 .build()
 
-        val supportedNamespaces: MutableList<String> = ArrayList()
-        supportedNamespaces.add(CUSTOM_NAMESPACE)
-
         return CastOptions.Builder()
                 .setLaunchOptions(launchOptions)
                 .setReceiverApplicationId(CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID)
-                .setSupportedNamespaces(supportedNamespaces)
                 .setCastMediaOptions(mediaOptions)
                 .build()
     }
